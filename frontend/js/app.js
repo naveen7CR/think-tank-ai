@@ -609,7 +609,8 @@ function initSocket() {
     if (socket) socket.disconnect();
 
     try {
-        socket = io('http://localhost:5000');
+        // CHANGE THIS LINE - Use your Render backend URL
+        socket = io('https://think-tank-ai-backend.onrender.com');
         socket.emit('join', currentUser._id);
 
         socket.on('receive_message', (message) => {
