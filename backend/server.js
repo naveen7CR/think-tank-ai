@@ -16,14 +16,35 @@ app.get('/', (req, res) => {
     res.json({ message: 'Think Tank AI API is running!' });
 });
 
-// Import routes - simplified
+// Import all routes
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const questionRoutes = require('./routes/questions');
+const mentorshipRoutes = require('./routes/mentorship');
+const mocktestRoutes = require('./routes/mocktests');
+const studyRoutes = require('./routes/study');
+const aiRoutes = require('./routes/ai');
+const chatRoutes = require('./routes/chat');
+const knowledgeRoutes = require('./routes/knowledge');
+const sessionRoutes = require('./routes/sessions');
+const paymentRoutes = require('./routes/payment');
 
-// Only add routes that exist
+// Mount all routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/mentorship', mentorshipRoutes);
+app.use('/api/mocktests', mocktestRoutes);
+app.use('/api/study', studyRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/payment', paymentRoutes);
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 API available at http://localhost:${PORT}/api`);
 });
