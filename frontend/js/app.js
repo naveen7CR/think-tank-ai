@@ -530,6 +530,7 @@ function updateStudyChart(weeklyData) {
 }
 
 // ============ MENTORS ============
+// ============ MENTORS ============
 
 async function loadMentors() {
     try {
@@ -570,12 +571,17 @@ async function loadMentors() {
                         </div>
                         <p class="mentor-skills">${m.skillTags?.join(' • ') || 'General'}</p>
                         <p class="mentor-bio">${m.bio || 'Expert mentor ready to help!'}</p>
-                        <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat">
-                            <i class="fas fa-comment"></i> Chat
-                        </button>
-                        <button onclick="requestSession('${m._id}', 'chat')" class="btn-session">
-                            <i class="fas fa-video"></i> Book Session
-                        </button>
+                        <div class="mentor-buttons">
+                            <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat">
+                                <i class="fas fa-comment"></i> Chat
+                            </button>
+                            <button onclick="requestSession('${m._id}', 'chat')" class="btn-session">
+                                <i class="fas fa-calendar-alt"></i> Book Session
+                            </button>
+                            <button onclick="startVideoCall('${m._id}', 'video')" class="btn-video">
+                                <i class="fas fa-video"></i> Video Call
+                            </button>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -1075,3 +1081,153 @@ if (savedToken) {
             localStorage.removeItem('token');
         });
 }
+
+// Video Call Functions
+let peerConnection = null;
+let localStream = null;
+let currentCallId = null;
+
+async function startVideoCall(targetUserId, callType = 'video') {
+    try {
+        // Request camera and microphone
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+        });
+
+        document.getElementById('localVideo').srcObject = localStream;
+
+        // Initialize call on server
+        const response = await fetch(`${API_URL}/video/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ targetUserId, callType })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            currentCallId = data.callId;
+            showVideoCallModal();
+
+            // Setup WebRTC connection
+            setupWebRTC(targetUserId);
+        }
+    } catch (error) {
+        console.error('Error starting video call:', error);
+        alert('Unable to access camera/microphone');
+    }
+}
+
+function setupWebRTC(targetUserId) {
+    // Configuration for STUN servers (free)
+    const configuration = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    };
+
+    peerConnection = new RTCPeerConnection(configuration);
+
+    // Add local stream tracks
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
+
+    // Handle remote stream
+    peerConnection.ontrack = (event) => {
+        document.getElementById('remoteVideo').srcObject = event.streams[0];
+    };
+
+    // Handle ICE candidates
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.emit('ice-candidate', {
+                candidate: event.candidate,
+                targetUserId: targetUserId,
+                callId: currentCallId
+            });
+        }
+    };
+
+    // Create offer
+    peerConnection.createOffer()
+        .then(offer => peerConnection.setLocalDescription(offer))
+        .then(() => {
+            socket.emit('video-offer', {
+                offer: peerConnection.localDescription,
+                targetUserId: targetUserId,
+                callId: currentCallId
+            });
+        });
+}
+
+function showVideoCallModal() {
+    const modal = document.getElementById('video-call-modal');
+    if (modal) modal.style.display = 'block';
+}
+
+function closeVideoCall() {
+    const modal = document.getElementById('video-call-modal');
+    if (modal) modal.style.display = 'none';
+    endCall();
+}
+
+let isMuted = false;
+let isVideoOff = false;
+
+function toggleMute() {
+    if (localStream) {
+        const audioTracks = localStream.getAudioTracks();
+        audioTracks.forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        isMuted = !isMuted;
+        const muteBtn = document.getElementById('muteBtn');
+        if (muteBtn) {
+            muteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
+        }
+    }
+}
+
+function toggleVideo() {
+    if (localStream) {
+        const videoTracks = localStream.getVideoTracks();
+        videoTracks.forEach(track => {
+            track.enabled = !track.enabled;
+        });
+        isVideoOff = !isVideoOff;
+        const videoBtn = document.getElementById('videoBtn');
+        if (videoBtn) {
+            videoBtn.innerHTML = isVideoOff ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
+        }
+    }
+}
+
+async function endCall() {
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+
+    if (currentCallId) {
+        await fetch(`${API_URL}/video/end/${currentCallId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        currentCallId = null;
+    }
+
+    closeVideoCall();
+}
+
+// Add video call button to mentor cards
+// Update the mentor card button section to include video call

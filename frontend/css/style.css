@@ -451,6 +451,31 @@ body {
     font-size: 0.85rem;
 }
 
+.btn-video {
+    background: #10b981;
+    color: white;
+    padding: 6px 12px;
+    margin-right: 8px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.btn-video:hover {
+    background: #059669;
+    transform: translateY(-2px);
+}
+
+/* Mentor Buttons Container */
+.mentor-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
 /* Tracker Stats */
 .tracker-stats {
     display: grid;
@@ -1106,4 +1131,92 @@ body {
 .skill-tag .remove {
     cursor: pointer;
     color: #ef4444;
+}
+
+/* Video Call Styles */
+.video-call-container {
+    max-width: 800px;
+    width: 90%;
+    background: #1a1a2e;
+}
+
+.video-call {
+    position: relative;
+    min-height: 500px;
+}
+
+.remote-video {
+    position: relative;
+    width: 100%;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.remote-video video {
+    width: 100%;
+    height: auto;
+    background: #000;
+}
+
+.local-video {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 150px;
+    height: 112px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #667eea;
+    background: #000;
+    cursor: pointer;
+}
+
+.local-video video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remote-label,
+.local-label {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.call-controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+    padding: 15px;
+}
+
+.call-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.3s;
+}
+
+.call-btn:hover {
+    transform: scale(1.1);
+}
+
+.end-call {
+    background: #ef4444;
+    color: white;
+}
+
+.end-call:hover {
+    background: #dc2626;
 }

@@ -440,6 +440,34 @@
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- Video Call Modal -->
+    <div id="video-call-modal" class="modal" style="display: none;">
+        <div class="modal-content video-call-container">
+            <span class="close" onclick="closeVideoCall()">&times;</span>
+            <div class="video-call">
+                <div class="remote-video">
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="remote-label">Mentor</div>
+                </div>
+                <div class="local-video">
+                    <video id="localVideo" autoplay playsinline muted></video>
+                    <div class="local-label">You</div>
+                </div>
+                <div class="call-controls">
+                    <button onclick="toggleMute()" class="call-btn" id="muteBtn">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button onclick="toggleVideo()" class="call-btn" id="videoBtn">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button onclick="endCall()" class="call-btn end-call">
+                        <i class="fas fa-phone-slash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
