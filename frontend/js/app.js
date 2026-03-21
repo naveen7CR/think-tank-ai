@@ -1,4 +1,4 @@
-// frontend/js/app.js - Complete Think Tank AI Frontend (Enhanced)
+// frontend/js/app.js - CLEAN VERSION
 const API_URL = 'https://think-tank-ai-backend.onrender.com/api';
 let token = null;
 let currentUser = null;
@@ -7,7 +7,6 @@ let studyChart = null;
 
 // ============ AUTHENTICATION ============
 
-// Toggle between student and mentor fields in registration
 function toggleRoleFields() {
     const role = document.getElementById('register-role').value;
     const studentFields = document.getElementById('student-fields');
@@ -23,7 +22,6 @@ function toggleRoleFields() {
     }
 }
 
-// Toggle college fields based on education level
 function toggleCollegeFields() {
     const education = document.getElementById('register-education').value;
     const collegeFields = document.getElementById('college-fields');
@@ -41,7 +39,6 @@ function toggleCollegeFields() {
     }
 }
 
-// Enhanced Register function
 async function register() {
     const name = document.getElementById('register-name').value;
     const email = document.getElementById('register-email').value;
@@ -110,7 +107,6 @@ async function register() {
     }
 }
 
-// Login function
 async function login() {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
@@ -146,7 +142,6 @@ async function login() {
     }
 }
 
-// Logout function
 function logout() {
     localStorage.removeItem('token');
     token = null;
@@ -155,7 +150,6 @@ function logout() {
     window.location.reload();
 }
 
-// Show dashboard after login
 function showDashboard() {
     const heroSection = document.getElementById('hero-section');
     if (heroSection) heroSection.style.display = 'none';
@@ -178,7 +172,6 @@ function showDashboard() {
     const userAvatar = document.getElementById('user-avatar');
     if (userAvatar) userAvatar.src = currentUser.avatar || 'https://via.placeholder.com/40';
 
-    // Update profile info
     const profileName = document.getElementById('profile-name');
     if (profileName) profileName.textContent = currentUser.name;
 
@@ -194,7 +187,6 @@ function showDashboard() {
     const profileHours = document.getElementById('profile-hours');
     if (profileHours) profileHours.textContent = currentUser.studyHours || 0;
 
-    // Load all data
     loadMentors();
     loadStudyStats();
     loadMockTests();
@@ -204,7 +196,6 @@ function showDashboard() {
     showSection('ai-assistant');
 }
 
-// Show different sections
 function showSection(sectionName) {
     const sections = ['ai-assistant', 'mentors', 'tracker', 'knowledge', 'mocktests', 'profile'];
     sections.forEach(section => {
@@ -215,7 +206,6 @@ function showSection(sectionName) {
     const activeSection = document.getElementById(`${sectionName}-section`);
     if (activeSection) activeSection.style.display = 'block';
 
-    // Refresh chart when tracker section is shown
     if (sectionName === 'tracker' && studyChart) {
         studyChart.update();
     }
@@ -232,7 +222,6 @@ async function uploadAvatar() {
         return;
     }
 
-    // Check file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
         alert('File too large! Maximum size is 2MB');
         return;
@@ -402,7 +391,7 @@ function formatAIResponse(text) {
     return `<div class="ai-response">${formatted}</div>`;
 }
 
-// ============ STUDY TRACKER WITH CHART ============
+// ============ STUDY TRACKER ============
 
 async function trackStudy() {
     const hoursInput = document.getElementById('study-hours');
@@ -456,11 +445,9 @@ async function loadStudyStats() {
             document.getElementById('total-hours').textContent = data.data.totalHours || 0;
             document.getElementById('total-stars').textContent = data.data.stars || 0;
 
-            // Update chart with weekly data if available
             if (data.data.weeklyData) {
                 updateStudyChart(data.data.weeklyData);
             } else {
-                // Demo data for chart
                 updateStudyChart([2, 4, 3, 5, 6, 4, 3]);
             }
         }
@@ -501,44 +488,28 @@ function updateStudyChart(weeklyData) {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    backgroundColor: '#1e293b',
-                    titleColor: '#fff',
-                    bodyColor: '#e2e8f0'
-                }
+                legend: { position: 'top' },
+                tooltip: { backgroundColor: '#1e293b', titleColor: '#fff', bodyColor: '#e2e8f0' }
             },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Hours'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Day'
-                    }
-                }
+                y: { beginAtZero: true, title: { display: true, text: 'Hours' } },
+                x: { title: { display: true, text: 'Day' } }
             }
         }
     });
 }
 
 // ============ MENTORS ============
-// ============ MENTORS ============
 
 async function loadMentors() {
     try {
         const subjectFilter = document.getElementById('mentor-subject-filter');
         const sortSelect = document.getElementById('mentor-sort');
+        const searchInput = document.getElementById('mentor-search');
 
         const subject = subjectFilter?.value || '';
         const sort = sortSelect?.value || 'stars';
+        const searchTerm = searchInput?.value?.toLowerCase() || '';
 
         let url = `${API_URL}/mentorship/mentors`;
         if (subject) url += `?subject=${subject}`;
@@ -555,9 +526,22 @@ async function loadMentors() {
         if (data.success && data.data.length > 0) {
             let mentors = data.data;
 
+            if (searchTerm) {
+                mentors = mentors.filter(m =>
+                    m.name.toLowerCase().includes(searchTerm) ||
+                    m.skillTags?.some(tag => tag.toLowerCase().includes(searchTerm)) ||
+                    (m.bio && m.bio.toLowerCase().includes(searchTerm))
+                );
+            }
+
             if (sort === 'rating') mentors.sort((a, b) => b.mentorRating - a.mentorRating);
             else if (sort === 'sessions') mentors.sort((a, b) => b.totalSessions - a.totalSessions);
             else mentors.sort((a, b) => b.stars - a.stars);
+
+            if (mentors.length === 0) {
+                mentorsList.innerHTML = '<p>No mentors found matching your search.</p>';
+                return;
+            }
 
             mentorsList.innerHTML = mentors.map((m, idx) => `
                 <div class="mentor-card">
@@ -572,15 +556,9 @@ async function loadMentors() {
                         <p class="mentor-skills">${m.skillTags?.join(' • ') || 'General'}</p>
                         <p class="mentor-bio">${m.bio || 'Expert mentor ready to help!'}</p>
                         <div class="mentor-buttons">
-                            <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat">
-                                <i class="fas fa-comment"></i> Chat
-                            </button>
-                            <button onclick="requestSession('${m._id}', 'chat')" class="btn-session">
-                                <i class="fas fa-calendar-alt"></i> Book Session
-                            </button>
-                            <button onclick="startVideoCall('${m._id}', 'video')" class="btn-video">
-                                <i class="fas fa-video"></i> Video Call
-                            </button>
+                            <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat"><i class="fas fa-comment"></i> Chat</button>
+                            <button onclick="requestSession('${m._id}', 'chat')" class="btn-session"><i class="fas fa-calendar-alt"></i> Book Session</button>
+                            <button onclick="startVideoCall('${m._id}', 'video')" class="btn-video"><i class="fas fa-video"></i> Video Call</button>
                         </div>
                     </div>
                 </div>
@@ -593,6 +571,10 @@ async function loadMentors() {
         const mentorsList = document.getElementById('mentors-list');
         if (mentorsList) mentorsList.innerHTML = '<p>Error loading mentors. Please try again.</p>';
     }
+}
+
+function searchMentors() {
+    loadMentors();
 }
 
 // ============ KNOWLEDGE GRAPH ============
@@ -763,10 +745,10 @@ async function loadMockTests() {
 }
 
 async function startTest(testId) {
-    alert('Test feature coming soon! This will include:\n- Timed questions\n- AI-powered analysis\n- Detailed feedback\n- Topic-wise breakdown');
+    alert('Test feature coming soon!');
 }
 
-// ============ REAL-TIME CHAT ============
+// ============ CHAT ============
 
 function initSocket() {
     if (socket) socket.disconnect();
@@ -799,7 +781,6 @@ async function loadConversations() {
         if (!convList) return;
 
         if (data.success && data.data && data.data.length > 0) {
-            // Show only people you've actually chatted with
             convList.innerHTML = data.data.map(conv => `
                 <div class="conversation-item" onclick="openChat('${conv.user._id}', '${conv.user.name}')">
                     <img src="${conv.user.avatar || 'https://via.placeholder.com/40'}" alt="${conv.user.name}">
@@ -811,27 +792,23 @@ async function loadConversations() {
                 </div>
             `).join('');
         } else {
-            // Show helpful message when no conversations yet
-            convList.innerHTML = '<p style="text-align: center; padding: 20px;">💬 No conversations yet.<br>Click "Chat" on any mentor to start a conversation!</p>';
+            convList.innerHTML = '<p style="text-align: center; padding: 20px;">💬 No conversations yet.<br>Click "Chat" on any mentor to start!</p>';
         }
     } catch (error) {
         console.error('Error loading conversations:', error);
-        const convList = document.getElementById('conversations-list');
-        if (convList) convList.innerHTML = '<p style="text-align: center; padding: 20px;">Error loading conversations. Please refresh.</p>';
     }
 }
+
 function openChat(userId, userName) {
     window.currentChatUser = userId;
 
-    const chatWidget = document.getElementById('chat-widget');
     const convList = document.getElementById('conversations-list');
     const chatArea = document.getElementById('chat-area');
-    const chatMessages = document.getElementById('chat-messages');
+    const chatUserName = document.getElementById('chat-user-name');
 
-    if (chatWidget) chatWidget.style.display = 'flex';
     if (convList) convList.style.display = 'none';
     if (chatArea) chatArea.style.display = 'flex';
-    if (chatMessages) chatMessages.innerHTML = '';
+    if (chatUserName) chatUserName.textContent = userName;
 
     loadMessages(userId);
 }
@@ -867,7 +844,8 @@ async function sendMessage() {
     const chatInput = document.getElementById('chat-input');
     const content = chatInput?.value;
 
-    if (!content || !window.currentChatUser) {
+    if (!content || !content.trim()) return;
+    if (!window.currentChatUser) {
         alert('Please select a mentor to chat with first');
         return;
     }
@@ -881,7 +859,7 @@ async function sendMessage() {
             },
             body: JSON.stringify({
                 receiverId: window.currentChatUser,
-                content: content
+                content: content.trim()
             })
         });
 
@@ -896,14 +874,12 @@ async function sendMessage() {
                     ...data.data
                 });
             }
-            // Refresh conversation list to show new message
             loadConversations();
         } else {
-            alert(data.message || 'Failed to send message');
+            console.error('Send message error:', data.message);
         }
     } catch (error) {
         console.error('Error sending message:', error);
-        alert('Failed to send message. Please try again.');
     }
 }
 
@@ -933,9 +909,138 @@ function chatWithMentor(mentorId, mentorName) {
 
 function updateUnreadBadge() {
     const badge = document.getElementById('unread-badge');
-    if (badge) {
-        badge.style.display = 'none';
+    if (badge) badge.style.display = 'none';
+}
+
+// ============ VIDEO CALLS ============
+
+let peerConnection = null;
+let localStream = null;
+let currentCallId = null;
+
+async function startVideoCall(targetUserId, callType = 'video') {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('localVideo').srcObject = localStream;
+
+        const response = await fetch(`${API_URL}/video/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ targetUserId, callType })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            currentCallId = data.callId;
+            showVideoCallModal();
+            setupWebRTC(targetUserId);
+        }
+    } catch (error) {
+        console.error('Error starting video call:', error);
+        alert('Unable to access camera/microphone');
     }
+}
+
+function setupWebRTC(targetUserId) {
+    const configuration = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    };
+
+    peerConnection = new RTCPeerConnection(configuration);
+
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
+
+    peerConnection.ontrack = (event) => {
+        document.getElementById('remoteVideo').srcObject = event.streams[0];
+    };
+
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.emit('ice-candidate', {
+                candidate: event.candidate,
+                targetUserId: targetUserId,
+                callId: currentCallId
+            });
+        }
+    };
+
+    peerConnection.createOffer()
+        .then(offer => peerConnection.setLocalDescription(offer))
+        .then(() => {
+            socket.emit('video-offer', {
+                offer: peerConnection.localDescription,
+                targetUserId: targetUserId,
+                callId: currentCallId
+            });
+        });
+}
+
+function showVideoCallModal() {
+    const modal = document.getElementById('video-call-modal');
+    if (modal) modal.style.display = 'block';
+}
+
+function closeVideoCall() {
+    const modal = document.getElementById('video-call-modal');
+    if (modal) modal.style.display = 'none';
+    endCall();
+}
+
+let isMuted = false;
+let isVideoOff = false;
+
+function toggleMute() {
+    if (localStream) {
+        const audioTracks = localStream.getAudioTracks();
+        audioTracks.forEach(track => track.enabled = !track.enabled);
+        isMuted = !isMuted;
+        const muteBtn = document.getElementById('muteBtn');
+        if (muteBtn) {
+            muteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
+        }
+    }
+}
+
+function toggleVideo() {
+    if (localStream) {
+        const videoTracks = localStream.getVideoTracks();
+        videoTracks.forEach(track => track.enabled = !track.enabled);
+        isVideoOff = !isVideoOff;
+        const videoBtn = document.getElementById('videoBtn');
+        if (videoBtn) {
+            videoBtn.innerHTML = isVideoOff ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
+        }
+    }
+}
+
+async function endCall() {
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+
+    if (currentCallId) {
+        await fetch(`${API_URL}/video/end/${currentCallId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        currentCallId = null;
+    }
+
+    closeVideoCall();
 }
 
 // ============ SESSION BOOKING ============
@@ -1022,19 +1127,16 @@ function showAuthModal(type) {
     } else {
         if (loginForm) loginForm.style.display = 'none';
         if (registerForm) registerForm.style.display = 'block';
-        // Reset form when showing register
         resetRegistrationForm();
     }
 }
 
 function resetRegistrationForm() {
-    // Reset student/mentor fields visibility
     const studentFields = document.getElementById('student-fields');
     const mentorFields = document.getElementById('mentor-fields');
     if (studentFields) studentFields.style.display = 'block';
     if (mentorFields) mentorFields.style.display = 'none';
 
-    // Reset education fields
     const education = document.getElementById('register-education');
     if (education) education.value = 'school';
     toggleCollegeFields();
@@ -1090,363 +1192,4 @@ if (savedToken) {
         .catch(() => {
             localStorage.removeItem('token');
         });
-}
-
-// Video Call Functions
-let peerConnection = null;
-let localStream = null;
-let currentCallId = null;
-
-async function startVideoCall(targetUserId, callType = 'video') {
-    try {
-        // Request camera and microphone
-        localStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
-
-        document.getElementById('localVideo').srcObject = localStream;
-
-        // Initialize call on server
-        const response = await fetch(`${API_URL}/video/start`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ targetUserId, callType })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            currentCallId = data.callId;
-            showVideoCallModal();
-
-            // Setup WebRTC connection
-            setupWebRTC(targetUserId);
-        }
-    } catch (error) {
-        console.error('Error starting video call:', error);
-        alert('Unable to access camera/microphone');
-    }
-}
-
-function setupWebRTC(targetUserId) {
-    // Configuration for STUN servers (free)
-    const configuration = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-    };
-
-    peerConnection = new RTCPeerConnection(configuration);
-
-    // Add local stream tracks
-    localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-    });
-
-    // Handle remote stream
-    peerConnection.ontrack = (event) => {
-        document.getElementById('remoteVideo').srcObject = event.streams[0];
-    };
-
-    // Handle ICE candidates
-    peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            socket.emit('ice-candidate', {
-                candidate: event.candidate,
-                targetUserId: targetUserId,
-                callId: currentCallId
-            });
-        }
-    };
-
-    // Create offer
-    peerConnection.createOffer()
-        .then(offer => peerConnection.setLocalDescription(offer))
-        .then(() => {
-            socket.emit('video-offer', {
-                offer: peerConnection.localDescription,
-                targetUserId: targetUserId,
-                callId: currentCallId
-            });
-        });
-}
-
-function showVideoCallModal() {
-    const modal = document.getElementById('video-call-modal');
-    if (modal) modal.style.display = 'block';
-}
-
-function closeVideoCall() {
-    const modal = document.getElementById('video-call-modal');
-    if (modal) modal.style.display = 'none';
-    endCall();
-}
-
-let isMuted = false;
-let isVideoOff = false;
-
-function toggleMute() {
-    if (localStream) {
-        const audioTracks = localStream.getAudioTracks();
-        audioTracks.forEach(track => {
-            track.enabled = !track.enabled;
-        });
-        isMuted = !isMuted;
-        const muteBtn = document.getElementById('muteBtn');
-        if (muteBtn) {
-            muteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
-        }
-    }
-}
-
-function toggleVideo() {
-    if (localStream) {
-        const videoTracks = localStream.getVideoTracks();
-        videoTracks.forEach(track => {
-            track.enabled = !track.enabled;
-        });
-        isVideoOff = !isVideoOff;
-        const videoBtn = document.getElementById('videoBtn');
-        if (videoBtn) {
-            videoBtn.innerHTML = isVideoOff ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
-        }
-    }
-}
-
-async function endCall() {
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-    }
-
-    if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-    }
-
-    if (currentCallId) {
-        await fetch(`${API_URL}/video/end/${currentCallId}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        currentCallId = null;
-    }
-
-    closeVideoCall();
-}
-
-// Add video call button to mentor cards
-// Update the mentor card button section to include video call
-
-// Search mentors function
-
-// Search mentors function
-function searchMentors() {
-    const searchTerm = document.getElementById('mentor-search').value.toLowerCase();
-    const mentorCards = document.querySelectorAll('.mentor-card');
-
-    mentorCards.forEach(card => {
-        const name = card.querySelector('h4')?.innerText.toLowerCase() || '';
-        const skills = card.querySelector('.mentor-skills')?.innerText.toLowerCase() || '';
-        const bio = card.querySelector('.mentor-bio')?.innerText.toLowerCase() || '';
-
-        if (name.includes(searchTerm) || skills.includes(searchTerm) || bio.includes(searchTerm)) {
-            card.style.display = 'flex';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
-
-// Close chat widget completely
-function closeChatWidget() {
-    const chatWidget = document.getElementById('chat-widget');
-    if (chatWidget) {
-        chatWidget.style.display = 'none';
-    }
-    window.currentChatUser = null;
-}
-
-// Back to conversations list
-function backToConversations() {
-    const convList = document.getElementById('conversations-list');
-    const chatArea = document.getElementById('chat-area');
-
-    if (convList) convList.style.display = 'block';
-    if (chatArea) chatArea.style.display = 'none';
-    window.currentChatUser = null;
-}
-
-// Handle Enter key in chat input
-function handleChatKeyPress(event) {
-    if (event.key === 'Enter') {
-        sendMessage();
-    }
-}
-
-// Updated toggleChat function
-function toggleChat() {
-    const chatWidget = document.getElementById('chat-widget');
-    if (chatWidget) {
-        if (chatWidget.style.display === 'none' || !chatWidget.style.display) {
-            chatWidget.style.display = 'flex';
-            loadConversations();
-        } else {
-            chatWidget.style.display = 'none';
-        }
-    }
-}
-
-// Updated openChat function
-function openChat(userId, userName) {
-    window.currentChatUser = userId;
-
-    const convList = document.getElementById('conversations-list');
-    const chatArea = document.getElementById('chat-area');
-    const chatUserName = document.getElementById('chat-user-name');
-
-    if (convList) convList.style.display = 'none';
-    if (chatArea) chatArea.style.display = 'flex';
-    if (chatUserName) chatUserName.textContent = userName;
-
-    loadMessages(userId);
-}
-
-// Updated sendMessage function
-async function sendMessage() {
-    const chatInput = document.getElementById('chat-input');
-    const content = chatInput?.value;
-
-    if (!content || !content.trim()) {
-        return;
-    }
-
-    if (!window.currentChatUser) {
-        alert('Please select a mentor to chat with first');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/chat/send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                receiverId: window.currentChatUser,
-                content: content.trim()
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            if (chatInput) chatInput.value = '';
-            displayMessage(data.data);
-            if (socket) {
-                socket.emit('send_message', {
-                    receiverId: window.currentChatUser,
-                    ...data.data
-                });
-            }
-            loadConversations();
-        } else {
-            console.error('Send message error:', data.message);
-        }
-    } catch (error) {
-        console.error('Error sending message:', error);
-    }
-}
-// Search mentors in real-time
-let allMentorsData = [];
-
-async function loadMentors() {
-    try {
-        const subjectFilter = document.getElementById('mentor-subject-filter');
-        const sortSelect = document.getElementById('mentor-sort');
-        const searchInput = document.getElementById('mentor-search');
-
-        const subject = subjectFilter?.value || '';
-        const sort = sortSelect?.value || 'stars';
-        const searchTerm = searchInput?.value?.toLowerCase() || '';
-
-        let url = `${API_URL}/mentorship/mentors`;
-        if (subject) url += `?subject=${subject}`;
-
-        const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const data = await response.json();
-
-        const mentorsList = document.getElementById('mentors-list');
-        if (!mentorsList) return;
-
-        if (data.success && data.data.length > 0) {
-            let mentors = data.data;
-
-            // Filter by search term
-            if (searchTerm) {
-                mentors = mentors.filter(m =>
-                    m.name.toLowerCase().includes(searchTerm) ||
-                    m.skillTags?.some(tag => tag.toLowerCase().includes(searchTerm)) ||
-                    (m.bio && m.bio.toLowerCase().includes(searchTerm))
-                );
-            }
-
-            // Sort mentors
-            if (sort === 'rating') mentors.sort((a, b) => b.mentorRating - a.mentorRating);
-            else if (sort === 'sessions') mentors.sort((a, b) => b.totalSessions - a.totalSessions);
-            else mentors.sort((a, b) => b.stars - a.stars);
-
-            if (mentors.length === 0) {
-                mentorsList.innerHTML = '<p>No mentors found matching your search.</p>';
-                return;
-            }
-
-            mentorsList.innerHTML = mentors.map((m, idx) => `
-                <div class="mentor-card" data-name="${m.name.toLowerCase()}" data-skills="${m.skillTags?.join(' ').toLowerCase() || ''}">
-                    <img src="${m.avatar || 'https://via.placeholder.com/70'}" alt="${m.name}" class="mentor-avatar">
-                    <div class="mentor-info">
-                        <h4>${m.name} ${idx === 0 ? '🏆' : ''}</h4>
-                        <div class="mentor-stats">
-                            <span>⭐ ${m.stars || 0} stars</span>
-                            <span>📊 ${m.mentorRating || 0}/5 rating</span>
-                            <span>#${idx + 1} Rank</span>
-                            <span>📚 ${m.totalSessions || 0} sessions</span>
-                        </div>
-                        <p class="mentor-skills">${m.skillTags?.join(' • ') || 'General'}</p>
-                        <p class="mentor-bio">${m.bio || 'Expert mentor ready to help!'}</p>
-                        <div class="mentor-buttons">
-                            <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat">
-                                <i class="fas fa-comment"></i> Chat
-                            </button>
-                            <button onclick="requestSession('${m._id}', 'chat')" class="btn-session">
-                                <i class="fas fa-calendar-alt"></i> Book Session
-                            </button>
-                            <button onclick="startVideoCall('${m._id}', 'video')" class="btn-video">
-                                <i class="fas fa-video"></i> Video Call
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            mentorsList.innerHTML = '<p>No mentors available yet. Be the first mentor! Register as a mentor to help others.</p>';
-        }
-    } catch (error) {
-        console.error('Error loading mentors:', error);
-        const mentorsList = document.getElementById('mentors-list');
-        if (mentorsList) mentorsList.innerHTML = '<p>Error loading mentors. Please refresh the page.</p>';
-    }
-}
-
-// Real-time search function
-function searchMentors() {
-    loadMentors(); // Reload with search term
 }
