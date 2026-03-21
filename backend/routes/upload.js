@@ -1,54 +1,54 @@
-// backend/routes/upload.js
 const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const { protect } = require('../middleware/auth');
-const User = require('../models/User');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const connectDB = require('./config/database');
 
-// Configure multer for memory storage (we'll use base64)
-const storage = multer.memoryStorage();
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-        if (mimetype && extname) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Only images are allowed'));
-        }
-    }
+dotenv.config();
+connectDB();
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// Simple test route
+app.get('/', (req, res) => {
+    res.json({ message: 'Think Tank AI API is running!' });
 });
 
-// Upload avatar
-router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: 'No file uploaded' });
-        }
+// Import all routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const questionRoutes = require('./routes/questions');
+const mentorshipRoutes = require('./routes/mentorship');
+const mocktestRoutes = require('./routes/mocktests');
+const studyRoutes = require('./routes/study');
+const aiRoutes = require('./routes/ai');
+const chatRoutes = require('./routes/chat');
+const knowledgeRoutes = require('./routes/knowledge');
+const sessionRoutes = require('./routes/sessions');
+const paymentRoutes = require('./routes/payment');
+const videoRoutes = require('./routes/video');
+const uploadRoutes = require('./routes/upload');  // <-- ADD THIS
 
-        // Convert to base64 for storage
-        const base64Image = req.file.buffer.toString('base64');
-        const mimeType = req.file.mimetype;
-        const avatarUrl = `data:${mimeType};base64,${base64Image}`;
+// Mount all routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/mentorship', mentorshipRoutes);
+app.use('/api/mocktests', mocktestRoutes);
+app.use('/api/study', studyRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/video', videoRoutes);
+app.use('/api/upload', uploadRoutes);  // <-- ADD THIS
 
-        // Update user
-        const user = await User.findById(req.user.id);
-        user.avatar = avatarUrl;
-        await user.save();
+const PORT = process.env.PORT || 5000;
 
-        res.json({
-            success: true,
-            message: 'Avatar uploaded successfully',
-            avatar: avatarUrl
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Upload failed' });
-    }
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 API available at http://localhost:${PORT}/api`);
 });
-
-module.exports = router;

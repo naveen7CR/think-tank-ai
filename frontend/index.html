@@ -138,6 +138,15 @@
                 <h2><i class="fas fa-handshake"></i> Find Your Perfect Mentor</h2>
                 <p>Connect with top-rated mentors based on your needs</p>
             </div>
+            <div class="search-bar">
+                <input type="text" id="mentor-search" placeholder="🔍 Search by name, subject, or skill..."
+                    onkeyup="searchMentors()">
+            </div>
+            <div class="search-bar">
+                <input type="text" id="mentor-search" placeholder="🔍 Search mentors by name, subject, or skill..."
+                    onkeyup="searchMentors()">
+            </div>
+
             <div class="filters">
                 <select id="mentor-subject-filter" onchange="loadMentors()">
                     <option value="">All Subjects</option>
