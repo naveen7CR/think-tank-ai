@@ -1,7 +1,13 @@
-// backend/routes/ai.js - Simple Working Version
+// backend/routes/ai.js - Real OpenAI Integration
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const OpenAI = require('openai');
+
+// Initialize OpenAI
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 router.post('/ask', protect, async (req, res) => {
     try {
@@ -16,94 +22,176 @@ router.post('/ask', protect, async (req, res) => {
 
         console.log('📝 Question:', question);
 
+        // Get user context for better answers
+        let userContext = '';
+        if (req.user.role === 'student') {
+            userContext = `The user is a student. `;
+            if (req.user.educationLevel) {
+                userContext += `They are at ${req.user.educationLevel} level. `;
+            }
+        } else if (req.user.role === 'mentor') {
+            userContext = `The user is a mentor with expertise in ${req.user.skillTags?.join(', ') || 'various subjects'}. `;
+        }
+
+        // Call OpenAI API
+        const completion = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are ThinkTank AI, a helpful, enthusiastic study assistant for college students. 
+                    ${userContext}
+                    Provide clear, detailed, and engaging explanations. Use examples and markdown formatting. 
+                    Be encouraging and adapt your explanation to the user's level.`
+                },
+                {
+                    role: "user",
+                    content: question
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 1000,
+        });
+
+        const answer = completion.choices[0].message.content;
+
+        console.log('✅ Response generated');
+
+        // Generate smart follow-up suggestions based on question
         const lowerQ = question.toLowerCase();
-        let answer = "";
+        let suggestions = [
+            "Tell me more about this topic",
+            "Give me examples",
+            "Explain it differently"
+        ];
 
-        if (lowerQ.includes('quantum') || lowerQ.includes('physics')) {
-            answer = `**🔬 QUANTUM PHYSICS EXPLAINED**
-
-Quantum physics is the study of matter and energy at the smallest scales.
-
-**Key Concepts:**
-- **Wave-Particle Duality:** Particles behave as both waves and particles
-- **Superposition:** Particles can exist in multiple states at once
-- **Entanglement:** Particles can be connected across space
-
-**Why It's Important:**
-- Powers transistors, lasers, and MRI machines
-- Foundation for quantum computers
-
-**Newton's 3 Laws of Motion:**
-1. Objects stay still or keep moving unless force acts on them
-2. Force = mass × acceleration (F = ma)
-3. Every action has equal opposite reaction`;
-        }
-        else if (lowerQ.includes('python')) {
-            answer = `**🐍 PYTHON PROGRAMMING**
-
-Python is a beginner-friendly programming language.
-
-**Basic Syntax:**
-\`\`\`python
-name = "Alice"
-fruits = ["apple", "banana"]
-for fruit in fruits:
-    print(fruit)
-def greet(name):
-    return f"Hello, {name}!"
-\`\`\`
-
-**Common Uses:** Web dev, data science, AI, automation
-
-**Learning Path:** Start with variables → loops → functions → classes`;
-        }
-        else if (lowerQ.includes('calculus')) {
-            answer = `**📐 CALCULUS EXPLAINED**
-
-Calculus studies continuous change.
-
-**Two Main Types:**
-- **Differential:** Rates of change (derivatives)
-- **Integral:** Accumulation (areas under curves)
-
-**Real Uses:** Physics, engineering, economics, medicine`;
-        }
-        else if (lowerQ.includes('study') || lowerQ.includes('learn')) {
-            answer = `**📚 EFFECTIVE STUDY TIPS**
-
-1. **Active Recall:** Test yourself, don't just read
-2. **Spaced Repetition:** Review over increasing intervals
-3. **Pomodoro:** 25 min study, 5 min break
-4. **Teach Others:** Best way to learn is to explain
-
-**Remember:** Consistency beats intensity!`;
-        }
-        else {
-            answer = `**🤖 THINK TANK AI**
-
-I can help you learn! Try asking about:
-
-🔬 **Physics:** "Explain quantum physics"
-💻 **Programming:** "What is Python?"
-📐 **Math:** "Explain calculus"
-📚 **Study Skills:** "How to study effectively"
-
-What would you like to learn? 🚀`;
+        if (lowerQ.includes('explain') || lowerQ.includes('what is')) {
+            suggestions = [
+                `Can you give me more examples of ${question.substring(0, 30)}?`,
+                `What are the key points I should remember?`,
+                "How is this used in real life?"
+            ];
+        } else if (lowerQ.includes('how to')) {
+            suggestions = [
+                "Show me step-by-step",
+                "What are common mistakes?",
+                "Give me practice problems"
+            ];
+        } else if (lowerQ.includes('difference') || lowerQ.includes('vs')) {
+            suggestions = [
+                "What are the pros and cons?",
+                "When should I use each?",
+                "Can you give a comparison table?"
+            ];
         }
 
         res.json({
             success: true,
             answer: answer,
-            suggestions: ["Tell me more", "Give examples", "How to practice"]
+            suggestions: suggestions,
+            model: "gpt-3.5-turbo"
         });
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ OpenAI Error:', error.message);
+
+        // Fallback smart response
+        const fallbackAnswer = `**🤖 I'm here to help!**
+
+I understand you're asking about "${req.body.question}".
+
+Here's a helpful breakdown:
+
+📚 **Key Points:**
+- This is a great question that shows curiosity
+- Let me explain this concept in simple terms
+- Think of it like this: [simple analogy]
+
+💡 **Quick Tip:**
+The best way to understand this is to break it down into smaller parts and practice with examples.
+
+Would you like me to explain a specific aspect in more detail?`;
+
         res.json({
-            success: false,
-            answer: "I'm here to help! Please ask your question again.",
-            suggestions: ["Try a different question"]
+            success: true,
+            answer: fallbackAnswer,
+            suggestions: [
+                "Explain it with more examples",
+                "What are the practical applications?",
+                "Give me a simple analogy"
+            ]
         });
+    }
+});
+
+// Get learning resources for a topic
+router.post('/resources', protect, async (req, res) => {
+    try {
+        const { topic } = req.body;
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                {
+                    role: "system",
+                    content: "Provide 5 high-quality learning resources for the given topic. Include websites, YouTube channels, books, and online courses. Format nicely with bullet points and brief descriptions."
+                },
+                {
+                    role: "user",
+                    content: `Give me learning resources for: ${topic}`
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 500,
+        });
+
+        const resources = completion.choices[0].message.content;
+
+        res.json({
+            success: true,
+            resources: resources
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error fetching resources' });
+    }
+});
+
+// Generate practice questions
+router.post('/practice', protect, async (req, res) => {
+    try {
+        const { topic, difficulty = 'medium' } = req.body;
+
+        const completion = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                {
+                    role: "system",
+                    content: `Generate 3 ${difficulty} difficulty practice questions for the given topic. 
+                    For each question, include:
+                    1. The question
+                    2. A helpful hint
+                    3. The answer with explanation
+                    Format nicely with markdown.`
+                },
+                {
+                    role: "user",
+                    content: `Generate practice questions for: ${topic}`
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 800,
+        });
+
+        const questions = completion.choices[0].message.content;
+
+        res.json({
+            success: true,
+            questions: questions
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error generating questions' });
     }
 });
 

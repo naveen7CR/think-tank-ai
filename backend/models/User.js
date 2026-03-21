@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
     },
     avatar: {
         type: String,
-        default: 'https://via.placeholder.com/100'
+        default: 'https://via.placeholder.com/150'
     },
     stars: {
         type: Number,
@@ -79,3 +79,4 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 module.exports = mongoose.model('User', userSchema);
+

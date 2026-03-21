@@ -48,3 +48,6 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 API available at http://localhost:${PORT}/api`);
 });
+
+const uploadRoutes = require('./routes/upload');
+app.use('/api/upload', uploadRoutes);
