@@ -1,5 +1,5 @@
 // frontend/js/app.js - Complete Think Tank AI Frontend
-const API_URL = 'https://think-tank-ai-backend.onrender.com/api';
+const API_URL = process.env.API_URL || 'https://think-tank-ai-backend.onrender.com/api';
 let token = null;
 let currentUser = null;
 let socket = null;
