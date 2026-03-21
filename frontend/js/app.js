@@ -1243,6 +1243,8 @@ async function endCall() {
 // Update the mentor card button section to include video call
 
 // Search mentors function
+
+// Search mentors function
 function searchMentors() {
     const searchTerm = document.getElementById('mentor-search').value.toLowerCase();
     const mentorCards = document.querySelectorAll('.mentor-card');
@@ -1260,6 +1262,106 @@ function searchMentors() {
     });
 }
 
+// Close chat widget completely
+function closeChatWidget() {
+    const chatWidget = document.getElementById('chat-widget');
+    if (chatWidget) {
+        chatWidget.style.display = 'none';
+    }
+    window.currentChatUser = null;
+}
+
+// Back to conversations list
+function backToConversations() {
+    const convList = document.getElementById('conversations-list');
+    const chatArea = document.getElementById('chat-area');
+
+    if (convList) convList.style.display = 'block';
+    if (chatArea) chatArea.style.display = 'none';
+    window.currentChatUser = null;
+}
+
+// Handle Enter key in chat input
+function handleChatKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendMessage();
+    }
+}
+
+// Updated toggleChat function
+function toggleChat() {
+    const chatWidget = document.getElementById('chat-widget');
+    if (chatWidget) {
+        if (chatWidget.style.display === 'none' || !chatWidget.style.display) {
+            chatWidget.style.display = 'flex';
+            loadConversations();
+        } else {
+            chatWidget.style.display = 'none';
+        }
+    }
+}
+
+// Updated openChat function
+function openChat(userId, userName) {
+    window.currentChatUser = userId;
+
+    const convList = document.getElementById('conversations-list');
+    const chatArea = document.getElementById('chat-area');
+    const chatUserName = document.getElementById('chat-user-name');
+
+    if (convList) convList.style.display = 'none';
+    if (chatArea) chatArea.style.display = 'flex';
+    if (chatUserName) chatUserName.textContent = userName;
+
+    loadMessages(userId);
+}
+
+// Updated sendMessage function
+async function sendMessage() {
+    const chatInput = document.getElementById('chat-input');
+    const content = chatInput?.value;
+
+    if (!content || !content.trim()) {
+        return;
+    }
+
+    if (!window.currentChatUser) {
+        alert('Please select a mentor to chat with first');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/chat/send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                receiverId: window.currentChatUser,
+                content: content.trim()
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            if (chatInput) chatInput.value = '';
+            displayMessage(data.data);
+            if (socket) {
+                socket.emit('send_message', {
+                    receiverId: window.currentChatUser,
+                    ...data.data
+                });
+            }
+            loadConversations();
+        } else {
+            console.error('Send message error:', data.message);
+        }
+    } catch (error) {
+        console.error('Error sending message:', error);
+    }
+}
 // Search mentors in real-time
 let allMentorsData = [];
 

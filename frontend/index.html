@@ -133,18 +133,19 @@
         </section>
 
         <!-- Mentors Section -->
+        <!-- Mentors Section -->
         <section id="mentors-section" class="section-content">
             <div class="section-header">
                 <h2><i class="fas fa-handshake"></i> Find Your Perfect Mentor</h2>
                 <p>Connect with top-rated mentors based on your needs</p>
             </div>
+
+            <!-- SEARCH BAR - ADD THIS -->
             <div class="search-bar">
-                <input type="text" id="mentor-search" placeholder="🔍 Search by name, subject, or skill..."
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="mentor-search" placeholder="Search by name, subject, or skill..."
                     onkeyup="searchMentors()">
-            </div>
-            <div class="search-bar">
-                <input type="text" id="mentor-search" placeholder="🔍 Search mentors by name, subject, or skill..."
-                    onkeyup="searchMentors()">
+                <button onclick="searchMentors()" class="search-btn">Search</button>
             </div>
 
             <div class="filters">
@@ -429,26 +430,33 @@
     </div>
 
     <!-- Chat Widget -->
+    <!-- Chat Widget -->
     <div id="chat-widget" class="chat-widget" style="display: none;">
         <div class="chat-header" onclick="toggleChat()">
             <i class="fas fa-comment-dots"></i>
             <span>Messages</span>
             <span id="unread-badge" class="unread-badge" style="display: none;">0</span>
+            <button class="chat-close-btn" onclick="closeChatWidget()">✕</button>
         </div>
-        <div class="chat-body" id="chat-body" style="display: none;">
-            <div class="conversations-list" id="conversations-list"></div>
+        <div class="chat-body" id="chat-body">
+            <div class="conversations-list" id="conversations-list">
+                <p style="text-align: center; padding: 20px;">Loading conversations...</p>
+            </div>
             <div class="chat-area" id="chat-area" style="display: none;">
+                <div class="chat-header-area">
+                    <button class="back-btn" onclick="backToConversations()">← Back</button>
+                    <span id="chat-user-name"></span>
+                    <button class="close-chat-btn" onclick="closeChatWidget()">✕</button>
+                </div>
                 <div class="chat-messages" id="chat-messages"></div>
                 <div class="chat-input">
-                    <input type="text" id="chat-input" placeholder="Type a message...">
+                    <input type="text" id="chat-input" placeholder="Type a message..."
+                        onkeypress="handleChatKeyPress(event)">
                     <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="js/app.js"></script>
 
     <!-- Video Call Modal -->
     <div id="video-call-modal" class="modal" style="display: none;">
