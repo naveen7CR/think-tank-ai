@@ -798,25 +798,28 @@ async function loadConversations() {
         const convList = document.getElementById('conversations-list');
         if (!convList) return;
 
-        if (data.success && data.data.length > 0) {
+        if (data.success && data.data && data.data.length > 0) {
+            // Show only people you've actually chatted with
             convList.innerHTML = data.data.map(conv => `
                 <div class="conversation-item" onclick="openChat('${conv.user._id}', '${conv.user.name}')">
                     <img src="${conv.user.avatar || 'https://via.placeholder.com/40'}" alt="${conv.user.name}">
                     <div class="conv-info">
                         <strong>${conv.user.name}</strong>
-                        <p>${conv.lastMessage?.content?.substring(0, 30) || 'Start conversation'}</p>
+                        <p>${conv.lastMessage?.content?.substring(0, 30) || 'Click to start chatting'}</p>
                     </div>
                     ${conv.unreadCount > 0 ? `<span class="unread-count">${conv.unreadCount}</span>` : ''}
                 </div>
             `).join('');
         } else {
-            convList.innerHTML = '<p>No conversations yet. Start chatting with mentors!</p>';
+            // Show helpful message when no conversations yet
+            convList.innerHTML = '<p style="text-align: center; padding: 20px;">💬 No conversations yet.<br>Click "Chat" on any mentor to start a conversation!</p>';
         }
     } catch (error) {
         console.error('Error loading conversations:', error);
+        const convList = document.getElementById('conversations-list');
+        if (convList) convList.innerHTML = '<p style="text-align: center; padding: 20px;">Error loading conversations. Please refresh.</p>';
     }
 }
-
 function openChat(userId, userName) {
     window.currentChatUser = userId;
 
@@ -864,7 +867,10 @@ async function sendMessage() {
     const chatInput = document.getElementById('chat-input');
     const content = chatInput?.value;
 
-    if (!content || !window.currentChatUser) return;
+    if (!content || !window.currentChatUser) {
+        alert('Please select a mentor to chat with first');
+        return;
+    }
 
     try {
         const response = await fetch(`${API_URL}/chat/send`, {
@@ -875,7 +881,7 @@ async function sendMessage() {
             },
             body: JSON.stringify({
                 receiverId: window.currentChatUser,
-                content
+                content: content
             })
         });
 
@@ -890,10 +896,14 @@ async function sendMessage() {
                     ...data.data
                 });
             }
+            // Refresh conversation list to show new message
+            loadConversations();
+        } else {
+            alert(data.message || 'Failed to send message');
         }
     } catch (error) {
         console.error('Error sending message:', error);
-        alert('Failed to send message');
+        alert('Failed to send message. Please try again.');
     }
 }
 
@@ -1231,3 +1241,110 @@ async function endCall() {
 
 // Add video call button to mentor cards
 // Update the mentor card button section to include video call
+
+// Search mentors function
+function searchMentors() {
+    const searchTerm = document.getElementById('mentor-search').value.toLowerCase();
+    const mentorCards = document.querySelectorAll('.mentor-card');
+
+    mentorCards.forEach(card => {
+        const name = card.querySelector('h4')?.innerText.toLowerCase() || '';
+        const skills = card.querySelector('.mentor-skills')?.innerText.toLowerCase() || '';
+        const bio = card.querySelector('.mentor-bio')?.innerText.toLowerCase() || '';
+
+        if (name.includes(searchTerm) || skills.includes(searchTerm) || bio.includes(searchTerm)) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Search mentors in real-time
+let allMentorsData = [];
+
+async function loadMentors() {
+    try {
+        const subjectFilter = document.getElementById('mentor-subject-filter');
+        const sortSelect = document.getElementById('mentor-sort');
+        const searchInput = document.getElementById('mentor-search');
+
+        const subject = subjectFilter?.value || '';
+        const sort = sortSelect?.value || 'stars';
+        const searchTerm = searchInput?.value?.toLowerCase() || '';
+
+        let url = `${API_URL}/mentorship/mentors`;
+        if (subject) url += `?subject=${subject}`;
+
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        const mentorsList = document.getElementById('mentors-list');
+        if (!mentorsList) return;
+
+        if (data.success && data.data.length > 0) {
+            let mentors = data.data;
+
+            // Filter by search term
+            if (searchTerm) {
+                mentors = mentors.filter(m =>
+                    m.name.toLowerCase().includes(searchTerm) ||
+                    m.skillTags?.some(tag => tag.toLowerCase().includes(searchTerm)) ||
+                    (m.bio && m.bio.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            // Sort mentors
+            if (sort === 'rating') mentors.sort((a, b) => b.mentorRating - a.mentorRating);
+            else if (sort === 'sessions') mentors.sort((a, b) => b.totalSessions - a.totalSessions);
+            else mentors.sort((a, b) => b.stars - a.stars);
+
+            if (mentors.length === 0) {
+                mentorsList.innerHTML = '<p>No mentors found matching your search.</p>';
+                return;
+            }
+
+            mentorsList.innerHTML = mentors.map((m, idx) => `
+                <div class="mentor-card" data-name="${m.name.toLowerCase()}" data-skills="${m.skillTags?.join(' ').toLowerCase() || ''}">
+                    <img src="${m.avatar || 'https://via.placeholder.com/70'}" alt="${m.name}" class="mentor-avatar">
+                    <div class="mentor-info">
+                        <h4>${m.name} ${idx === 0 ? '🏆' : ''}</h4>
+                        <div class="mentor-stats">
+                            <span>⭐ ${m.stars || 0} stars</span>
+                            <span>📊 ${m.mentorRating || 0}/5 rating</span>
+                            <span>#${idx + 1} Rank</span>
+                            <span>📚 ${m.totalSessions || 0} sessions</span>
+                        </div>
+                        <p class="mentor-skills">${m.skillTags?.join(' • ') || 'General'}</p>
+                        <p class="mentor-bio">${m.bio || 'Expert mentor ready to help!'}</p>
+                        <div class="mentor-buttons">
+                            <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat">
+                                <i class="fas fa-comment"></i> Chat
+                            </button>
+                            <button onclick="requestSession('${m._id}', 'chat')" class="btn-session">
+                                <i class="fas fa-calendar-alt"></i> Book Session
+                            </button>
+                            <button onclick="startVideoCall('${m._id}', 'video')" class="btn-video">
+                                <i class="fas fa-video"></i> Video Call
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            mentorsList.innerHTML = '<p>No mentors available yet. Be the first mentor! Register as a mentor to help others.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading mentors:', error);
+        const mentorsList = document.getElementById('mentors-list');
+        if (mentorsList) mentorsList.innerHTML = '<p>Error loading mentors. Please refresh the page.</p>';
+    }
+}
+
+// Real-time search function
+function searchMentors() {
+    loadMentors(); // Reload with search term
+}
