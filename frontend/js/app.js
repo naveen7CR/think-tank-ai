@@ -1,12 +1,47 @@
-// frontend/js/app.js - Complete Think Tank AI Frontend
+// frontend/js/app.js - Complete Think Tank AI Frontend (Enhanced)
 const API_URL = 'https://think-tank-ai-backend.onrender.com/api';
 let token = null;
 let currentUser = null;
 let socket = null;
+let studyChart = null;
 
 // ============ AUTHENTICATION ============
 
-// Register function
+// Toggle between student and mentor fields in registration
+function toggleRoleFields() {
+    const role = document.getElementById('register-role').value;
+    const studentFields = document.getElementById('student-fields');
+    const mentorFields = document.getElementById('mentor-fields');
+
+    if (role === 'student') {
+        studentFields.style.display = 'block';
+        mentorFields.style.display = 'none';
+        toggleCollegeFields();
+    } else {
+        studentFields.style.display = 'none';
+        mentorFields.style.display = 'block';
+    }
+}
+
+// Toggle college fields based on education level
+function toggleCollegeFields() {
+    const education = document.getElementById('register-education').value;
+    const collegeFields = document.getElementById('college-fields');
+    const classField = document.getElementById('class-field');
+
+    if (education === 'college') {
+        collegeFields.style.display = 'block';
+        if (classField) classField.style.display = 'block';
+    } else if (education === 'graduate') {
+        collegeFields.style.display = 'none';
+        if (classField) classField.style.display = 'none';
+    } else {
+        collegeFields.style.display = 'none';
+        if (classField) classField.style.display = 'block';
+    }
+}
+
+// Enhanced Register function
 async function register() {
     const name = document.getElementById('register-name').value;
     const email = document.getElementById('register-email').value;
@@ -14,15 +49,46 @@ async function register() {
     const role = document.getElementById('register-role').value;
 
     if (!name || !email || !password) {
-        alert('Please fill all fields');
+        alert('Please fill all required fields');
         return;
+    }
+
+    let userData = { name, email, password, role };
+
+    if (role === 'student') {
+        const education = document.getElementById('register-education').value;
+        const studentClass = document.getElementById('register-class').value;
+
+        userData.educationLevel = education;
+        userData.studentClass = studentClass;
+
+        if (education === 'college') {
+            const college = document.getElementById('register-college').value;
+            const branch = document.getElementById('register-branch').value;
+            userData.institution = college;
+            userData.branch = branch;
+        } else if (education === 'school') {
+            userData.institution = 'High School';
+        } else {
+            userData.institution = 'Graduate';
+        }
+    } else {
+        const expertise = Array.from(document.getElementById('register-expertise').selectedOptions).map(opt => opt.value);
+        const experience = document.getElementById('register-experience').value;
+        const qualification = document.getElementById('register-qualification').value;
+        const bio = document.getElementById('register-bio').value;
+
+        userData.skillTags = expertise;
+        userData.experience = experience;
+        userData.qualification = qualification;
+        userData.bio = bio;
     }
 
     try {
         const response = await fetch(`${API_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password, role, skillTags: [] })
+            body: JSON.stringify(userData)
         });
 
         const data = await response.json();
@@ -40,7 +106,7 @@ async function register() {
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Registration failed. Make sure backend is running on port 5000');
+        alert('Registration failed. Make sure backend is running');
     }
 }
 
@@ -86,25 +152,20 @@ function logout() {
     token = null;
     currentUser = null;
     if (socket) socket.disconnect();
-    // Reload page to show hero section again
     window.location.reload();
 }
 
 // Show dashboard after login
 function showDashboard() {
-    // Hide hero section
     const heroSection = document.getElementById('hero-section');
     if (heroSection) heroSection.style.display = 'none';
 
-    // Hide features section
     const featuresSection = document.querySelector('.features');
     if (featuresSection) featuresSection.style.display = 'none';
 
-    // Show dashboard
     const dashboard = document.getElementById('dashboard');
     if (dashboard) dashboard.style.display = 'block';
 
-    // Update navigation
     const navAuth = document.getElementById('nav-auth');
     if (navAuth) navAuth.style.display = 'none';
 
@@ -140,7 +201,6 @@ function showDashboard() {
     loadKnowledgeGraph();
     loadConversations();
 
-    // Show AI section by default
     showSection('ai-assistant');
 }
 
@@ -154,11 +214,61 @@ function showSection(sectionName) {
 
     const activeSection = document.getElementById(`${sectionName}-section`);
     if (activeSection) activeSection.style.display = 'block';
+
+    // Refresh chart when tracker section is shown
+    if (sectionName === 'tracker' && studyChart) {
+        studyChart.update();
+    }
+}
+
+// ============ AVATAR UPLOAD ============
+
+async function uploadAvatar() {
+    const fileInput = document.getElementById('avatar-input');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert('Please select a file first');
+        return;
+    }
+
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+        alert('File too large! Maximum size is 2MB');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+        const response = await fetch(`${API_URL}/upload/avatar`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const userAvatar = document.getElementById('user-avatar');
+            const profileAvatar = document.getElementById('profile-avatar');
+            if (userAvatar) userAvatar.src = data.avatar;
+            if (profileAvatar) profileAvatar.src = data.avatar;
+            alert('Avatar updated successfully!');
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Failed to upload avatar');
+    }
 }
 
 // ============ AI ASSISTANT ============
 
-// Enhanced AI Assistant with Gemini
 async function askAI() {
     const questionInput = document.getElementById('ai-question');
     if (!questionInput) return;
@@ -169,7 +279,6 @@ async function askAI() {
     const messagesDiv = document.getElementById('ai-messages');
     if (!messagesDiv) return;
 
-    // Add user message with better formatting
     messagesDiv.innerHTML += `
         <div class="message user">
             <i class="fas fa-user"></i>
@@ -182,7 +291,6 @@ async function askAI() {
     questionInput.value = '';
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-    // Show typing indicator with animation
     messagesDiv.innerHTML += `
         <div class="message bot typing">
             <i class="fas fa-robot"></i>
@@ -207,12 +315,10 @@ async function askAI() {
 
         const data = await response.json();
 
-        // Remove typing indicator
         const typingIndicator = document.querySelector('.message.typing');
         if (typingIndicator) typingIndicator.remove();
 
         if (data.success) {
-            // Format the answer with markdown
             const formattedAnswer = formatAIResponse(data.answer);
 
             messagesDiv.innerHTML += `
@@ -256,7 +362,7 @@ async function askAI() {
             <div class="message bot error">
                 <i class="fas fa-exclamation-triangle"></i>
                 <div class="message-content">
-                    <p>⚠️ Connection error. Please make sure the backend is running on port 5000.</p>
+                    <p>⚠️ Connection error. Please check your connection.</p>
                 </div>
             </div>
         `;
@@ -264,7 +370,6 @@ async function askAI() {
     }
 }
 
-// Function to ask follow-up questions
 function askFollowUp(suggestion) {
     const questionInput = document.getElementById('ai-question');
     if (questionInput) {
@@ -273,103 +378,31 @@ function askFollowUp(suggestion) {
     }
 }
 
-// Enhanced formatting for AI responses
 function formatAIResponse(text) {
     if (!text) return '<p>No response</p>';
 
-    // Convert markdown to HTML
     let formatted = text
-        // Headers
         .replace(/^### (.*$)/gm, '<h3>$1</h3>')
         .replace(/^## (.*$)/gm, '<h2>$1</h2>')
         .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-        // Bold
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        // Italic
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        // Code blocks
         .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
-        // Inline code
         .replace(/`(.*?)`/g, '<code>$1</code>')
-        // Numbered lists
         .replace(/^\d+\. (.*$)/gm, '<li>$1</li>')
-        // Bullet points
         .replace(/^[-*] (.*$)/gm, '<li>$1</li>')
-        // Wrap lists
         .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-        // Paragraphs
         .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br>');
 
-    // Wrap in paragraphs if not already
     if (!formatted.startsWith('<h1') && !formatted.startsWith('<h2') && !formatted.startsWith('<h3')) {
         formatted = `<p>${formatted}</p>`;
     }
 
     return `<div class="ai-response">${formatted}</div>`;
 }
-// ============ MENTORS ============
 
-async function loadMentors() {
-    try {
-        const subjectFilter = document.getElementById('mentor-subject-filter');
-        const sortSelect = document.getElementById('mentor-sort');
-
-        const subject = subjectFilter?.value || '';
-        const sort = sortSelect?.value || 'stars';
-
-        let url = `${API_URL}/mentorship/mentors`;
-        if (subject) url += `?subject=${subject}`;
-
-        const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const data = await response.json();
-
-        const mentorsList = document.getElementById('mentors-list');
-        if (!mentorsList) return;
-
-        if (data.success && data.data.length > 0) {
-            let mentors = data.data;
-
-            // Sort mentors
-            if (sort === 'rating') mentors.sort((a, b) => b.mentorRating - a.mentorRating);
-            else if (sort === 'sessions') mentors.sort((a, b) => b.totalSessions - a.totalSessions);
-            else mentors.sort((a, b) => b.stars - a.stars);
-
-            mentorsList.innerHTML = mentors.map((m, idx) => `
-                <div class="mentor-card">
-                    <img src="${m.avatar || 'https://via.placeholder.com/70'}" alt="${m.name}" class="mentor-avatar">
-                    <div class="mentor-info">
-                        <h4>${m.name} ${idx === 0 ? '🏆' : ''}</h4>
-                        <div class="mentor-stats">
-                            <span>⭐ ${m.stars || 0} stars</span>
-                            <span>📊 ${m.mentorRating || 0}/5 rating</span>
-                            <span>#${idx + 1} Rank</span>
-                        </div>
-                        <p class="mentor-skills">${m.skillTags?.join(' • ') || 'General'}</p>
-                        <p class="mentor-bio">${m.bio || 'Expert mentor ready to help!'}</p>
-                        <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat">
-                            <i class="fas fa-comment"></i> Chat
-                        </button>
-                        <button onclick="requestSession('${m._id}', 'chat')" class="btn-session">
-                            <i class="fas fa-video"></i> Book Session
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            mentorsList.innerHTML = '<p>No mentors available yet. Be the first mentor!</p>';
-        }
-    } catch (error) {
-        console.error('Error loading mentors:', error);
-        const mentorsList = document.getElementById('mentors-list');
-        if (mentorsList) mentorsList.innerHTML = '<p>Error loading mentors. Please try again.</p>';
-    }
-}
-
-// ============ STUDY TRACKER ============
+// ============ STUDY TRACKER WITH CHART ============
 
 async function trackStudy() {
     const hoursInput = document.getElementById('study-hours');
@@ -419,16 +452,140 @@ async function loadStudyStats() {
         const data = await response.json();
 
         if (data.success) {
-            const streakCount = document.getElementById('streak-count');
-            const totalHours = document.getElementById('total-hours');
-            const totalStars = document.getElementById('total-stars');
+            document.getElementById('streak-count').textContent = data.data.streak || 0;
+            document.getElementById('total-hours').textContent = data.data.totalHours || 0;
+            document.getElementById('total-stars').textContent = data.data.stars || 0;
 
-            if (streakCount) streakCount.textContent = data.data.streak || 0;
-            if (totalHours) totalHours.textContent = data.data.totalHours || 0;
-            if (totalStars) totalStars.textContent = data.data.stars || 0;
+            // Update chart with weekly data if available
+            if (data.data.weeklyData) {
+                updateStudyChart(data.data.weeklyData);
+            } else {
+                // Demo data for chart
+                updateStudyChart([2, 4, 3, 5, 6, 4, 3]);
+            }
         }
     } catch (error) {
         console.error('Error loading stats:', error);
+    }
+}
+
+function updateStudyChart(weeklyData) {
+    const ctx = document.getElementById('studyChart');
+    if (!ctx) return;
+
+    const canvasContext = ctx.getContext('2d');
+
+    if (studyChart) {
+        studyChart.destroy();
+    }
+
+    studyChart = new Chart(canvasContext, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Hours Studied',
+                data: weeklyData,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#667eea',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    titleColor: '#fff',
+                    bodyColor: '#e2e8f0'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Hours'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Day'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ============ MENTORS ============
+
+async function loadMentors() {
+    try {
+        const subjectFilter = document.getElementById('mentor-subject-filter');
+        const sortSelect = document.getElementById('mentor-sort');
+
+        const subject = subjectFilter?.value || '';
+        const sort = sortSelect?.value || 'stars';
+
+        let url = `${API_URL}/mentorship/mentors`;
+        if (subject) url += `?subject=${subject}`;
+
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        const mentorsList = document.getElementById('mentors-list');
+        if (!mentorsList) return;
+
+        if (data.success && data.data.length > 0) {
+            let mentors = data.data;
+
+            if (sort === 'rating') mentors.sort((a, b) => b.mentorRating - a.mentorRating);
+            else if (sort === 'sessions') mentors.sort((a, b) => b.totalSessions - a.totalSessions);
+            else mentors.sort((a, b) => b.stars - a.stars);
+
+            mentorsList.innerHTML = mentors.map((m, idx) => `
+                <div class="mentor-card">
+                    <img src="${m.avatar || 'https://via.placeholder.com/70'}" alt="${m.name}" class="mentor-avatar">
+                    <div class="mentor-info">
+                        <h4>${m.name} ${idx === 0 ? '🏆' : ''}</h4>
+                        <div class="mentor-stats">
+                            <span>⭐ ${m.stars || 0} stars</span>
+                            <span>📊 ${m.mentorRating || 0}/5 rating</span>
+                            <span>#${idx + 1} Rank</span>
+                        </div>
+                        <p class="mentor-skills">${m.skillTags?.join(' • ') || 'General'}</p>
+                        <p class="mentor-bio">${m.bio || 'Expert mentor ready to help!'}</p>
+                        <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat">
+                            <i class="fas fa-comment"></i> Chat
+                        </button>
+                        <button onclick="requestSession('${m._id}', 'chat')" class="btn-session">
+                            <i class="fas fa-video"></i> Book Session
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            mentorsList.innerHTML = '<p>No mentors available yet. Be the first mentor!</p>';
+        }
+    } catch (error) {
+        console.error('Error loading mentors:', error);
+        const mentorsList = document.getElementById('mentors-list');
+        if (mentorsList) mentorsList.innerHTML = '<p>Error loading mentors. Please try again.</p>';
     }
 }
 
@@ -609,7 +766,6 @@ function initSocket() {
     if (socket) socket.disconnect();
 
     try {
-        // CHANGE THIS LINE - Use your Render backend URL
         socket = io('https://think-tank-ai-backend.onrender.com');
         socket.emit('join', currentUser._id);
 
@@ -617,7 +773,7 @@ function initSocket() {
             if (window.currentChatUser === message.senderId) {
                 displayMessage(message);
             }
-            updateConversationList();
+            loadConversations();
             updateUnreadBadge();
         });
     } catch (error) {
@@ -850,7 +1006,22 @@ function showAuthModal(type) {
     } else {
         if (loginForm) loginForm.style.display = 'none';
         if (registerForm) registerForm.style.display = 'block';
+        // Reset form when showing register
+        resetRegistrationForm();
     }
+}
+
+function resetRegistrationForm() {
+    // Reset student/mentor fields visibility
+    const studentFields = document.getElementById('student-fields');
+    const mentorFields = document.getElementById('mentor-fields');
+    if (studentFields) studentFields.style.display = 'block';
+    if (mentorFields) mentorFields.style.display = 'none';
+
+    // Reset education fields
+    const education = document.getElementById('register-education');
+    if (education) education.value = 'school';
+    toggleCollegeFields();
 }
 
 function closeAuthModal() {
@@ -868,6 +1039,7 @@ function switchAuthForm(type) {
     } else {
         if (loginForm) loginForm.style.display = 'none';
         if (registerForm) registerForm.style.display = 'block';
+        resetRegistrationForm();
     }
 }
 
@@ -883,7 +1055,6 @@ function formatMarkdown(text) {
 
 // ============ INITIALIZATION ============
 
-// Check if user is already logged in
 const savedToken = localStorage.getItem('token');
 if (savedToken) {
     token = savedToken;
