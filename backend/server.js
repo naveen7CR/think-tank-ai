@@ -12,8 +12,8 @@ app.use(cors());
 app.use(express.json());
 
 // Simple test route
-app.get('/', (req, res) => {
-    res.json({ message: 'Think Tank AI API is running!' });
+app.get('/api/simple-test', (req, res) => {
+    res.json({ message: 'Simple test route works!' });
 });
 
 // Import all routes - EACH ONLY ONCE
