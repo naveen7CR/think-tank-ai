@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
     res.json({ message: 'Think Tank AI API is running!' });
 });
 
-// Import all routes
+// Import all routes - EACH ONLY ONCE
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const questionRoutes = require('./routes/questions');
@@ -28,7 +28,7 @@ const chatRoutes = require('./routes/chat');
 const knowledgeRoutes = require('./routes/knowledge');
 const sessionRoutes = require('./routes/sessions');
 const paymentRoutes = require('./routes/payment');
-const videoRoutes = require('./routes/video');
+const videoRoutes = require('./routes/video');  // <-- ONLY ONE TIME
 
 // Mount all routes
 app.use('/api/auth', authRoutes);
@@ -42,8 +42,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/video', videoRoutes);
-
+app.use('/api/video', videoRoutes);  // <-- ONLY ONE TIME
 
 const PORT = process.env.PORT || 5000;
 
@@ -51,9 +50,3 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 API available at http://localhost:${PORT}/api`);
 });
-
-const uploadRoutes = require('./routes/upload');
-app.use('/api/upload', uploadRoutes);
-
-const videoRoutes = require('./routes/video');
-app.use('/api/video', videoRoutes);
