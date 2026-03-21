@@ -28,6 +28,7 @@ const chatRoutes = require('./routes/chat');
 const knowledgeRoutes = require('./routes/knowledge');
 const sessionRoutes = require('./routes/sessions');
 const paymentRoutes = require('./routes/payment');
+const videoRoutes = require('./routes/video');
 
 // Mount all routes
 app.use('/api/auth', authRoutes);
@@ -41,6 +42,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/video', videoRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 
@@ -51,3 +54,6 @@ app.listen(PORT, '0.0.0.0', () => {
 
 const uploadRoutes = require('./routes/upload');
 app.use('/api/upload', uploadRoutes);
+
+const videoRoutes = require('./routes/video');
+app.use('/api/video', videoRoutes);
