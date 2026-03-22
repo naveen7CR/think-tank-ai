@@ -1,4 +1,4 @@
-// frontend/js/app.js - CLEAN VERSION
+// frontend/js/app.js - COMPLETE WORKING VERSION
 const API_URL = 'https://think-tank-ai-backend.onrender.com/api';
 let token = null;
 let currentUser = null;
@@ -103,7 +103,7 @@ async function register() {
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Registration failed. Make sure backend is running');
+        alert('Registration failed');
     }
 }
 
@@ -205,25 +205,21 @@ function showSection(sectionName) {
 
     const activeSection = document.getElementById(`${sectionName}-section`);
     if (activeSection) activeSection.style.display = 'block';
-
-    if (sectionName === 'tracker' && studyChart) {
-        studyChart.update();
-    }
 }
 
 // ============ AVATAR UPLOAD ============
 
 async function uploadAvatar() {
     const fileInput = document.getElementById('avatar-input');
-    const file = fileInput.files[0];
+    const file = fileInput?.files[0];
 
     if (!file) {
-        alert('Please select a file first');
+        alert('Please select a photo first');
         return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-        alert('File too large! Maximum size is 2MB');
+        alert('File too large! Max 2MB');
         return;
     }
 
@@ -246,260 +242,190 @@ async function uploadAvatar() {
             const profileAvatar = document.getElementById('profile-avatar');
             if (userAvatar) userAvatar.src = data.avatar;
             if (profileAvatar) profileAvatar.src = data.avatar;
-            alert('Avatar updated successfully!');
+            alert('✅ Photo updated!');
         } else {
-            alert(data.message);
+            alert(data.message || 'Upload failed');
         }
     } catch (error) {
         console.error('Upload error:', error);
-        alert('Failed to upload avatar');
+        alert('Failed to upload photo');
     }
 }
 
-// ============ AI ASSISTANT ============
+// ============ CHAT FUNCTIONS ============
 
-async function askAI() {
-    const questionInput = document.getElementById('ai-question');
-    if (!questionInput) return;
+function chatWithMentor(mentorId, mentorName) {
+    console.log('🔵 Chat button clicked for:', mentorName);
+    openChat(mentorId, mentorName);
+}
 
-    const question = questionInput.value;
-    if (!question) return;
+function openChat(userId, userName) {
+    console.log('🟢 Opening chat with:', userName);
+    window.currentChatUser = userId;
 
-    const messagesDiv = document.getElementById('ai-messages');
-    if (!messagesDiv) return;
+    const chatWidget = document.getElementById('chat-widget');
+    const convList = document.getElementById('conversations-list');
+    const chatArea = document.getElementById('chat-area');
+    const chatUserName = document.getElementById('chat-user-name');
+    const chatMessages = document.getElementById('chat-messages');
 
-    messagesDiv.innerHTML += `
-        <div class="message user">
-            <i class="fas fa-user"></i>
-            <div class="message-content">
-                <p>${escapeHtml(question)}</p>
-            </div>
-        </div>
-    `;
+    if (chatWidget) chatWidget.style.display = 'flex';
+    if (convList) convList.style.display = 'none';
+    if (chatArea) chatArea.style.display = 'flex';
+    if (chatUserName) chatUserName.textContent = userName;
+    if (chatMessages) chatMessages.innerHTML = '<p style="text-align:center;">Loading messages...</p>';
 
-    questionInput.value = '';
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    loadMessages(userId);
+}
 
-    messagesDiv.innerHTML += `
-        <div class="message bot typing">
-            <i class="fas fa-robot"></i>
-            <div class="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-    `;
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+function closeChatWidget() {
+    console.log('🔴 Closing chat');
+    const chatWidget = document.getElementById('chat-widget');
+    if (chatWidget) chatWidget.style.display = 'none';
+    window.currentChatUser = null;
+}
 
+function backToConversations() {
+    const convList = document.getElementById('conversations-list');
+    const chatArea = document.getElementById('chat-area');
+    if (convList) convList.style.display = 'block';
+    if (chatArea) chatArea.style.display = 'none';
+    window.currentChatUser = null;
+}
+
+function handleChatKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendMessage();
+    }
+}
+
+function toggleChat() {
+    const chatWidget = document.getElementById('chat-widget');
+    if (chatWidget) {
+        if (chatWidget.style.display === 'none' || !chatWidget.style.display) {
+            chatWidget.style.display = 'flex';
+            loadConversations();
+        } else {
+            chatWidget.style.display = 'none';
+        }
+    }
+}
+
+async function loadMessages(userId) {
     try {
-        const response = await fetch(`${API_URL}/ai/ask`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ question })
+        const response = await fetch(`${API_URL}/chat/messages/${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         const data = await response.json();
+        const messagesDiv = document.getElementById('chat-messages');
 
-        const typingIndicator = document.querySelector('.message.typing');
-        if (typingIndicator) typingIndicator.remove();
+        if (!messagesDiv) return;
 
-        if (data.success) {
-            const formattedAnswer = formatAIResponse(data.answer);
-
-            messagesDiv.innerHTML += `
-                <div class="message bot">
-                    <i class="fas fa-robot"></i>
-                    <div class="message-content">
-                        ${formattedAnswer}
-                        ${data.suggestions && data.suggestions.length > 0 ? `
-                            <div class="suggestions">
-                                <p><strong>💡 Follow-up Questions:</strong></p>
-                                <div class="suggestions-buttons">
-                                    ${data.suggestions.map(s => `
-                                        <button class="suggestion-btn" onclick="askFollowUp('${escapeHtml(s)}')">
-                                            ${escapeHtml(s)}
-                                        </button>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        ` : ''}
-                    </div>
+        if (data.success && data.data && data.data.length > 0) {
+            messagesDiv.innerHTML = data.data.map(msg => `
+                <div class="chat-message ${msg.sender._id === currentUser._id ? 'sent' : 'received'}">
+                    <p>${escapeHtml(msg.content)}</p>
+                    <small>${new Date(msg.createdAt).toLocaleTimeString()}</small>
                 </div>
-            `;
+            `).join('');
         } else {
-            messagesDiv.innerHTML += `
-                <div class="message bot error">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <div class="message-content">
-                        <p>Sorry, I couldn't process that. Please try again.</p>
-                    </div>
-                </div>
-            `;
+            messagesDiv.innerHTML = '<p style="text-align:center;">No messages yet. Say hello!</p>';
         }
-
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     } catch (error) {
-        console.error('AI Error:', error);
-        const typingIndicator = document.querySelector('.message.typing');
-        if (typingIndicator) typingIndicator.remove();
-
-        messagesDiv.innerHTML += `
-            <div class="message bot error">
-                <i class="fas fa-exclamation-triangle"></i>
-                <div class="message-content">
-                    <p>⚠️ Connection error. Please check your connection.</p>
-                </div>
-            </div>
-        `;
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        console.error('Error loading messages:', error);
     }
 }
 
-function askFollowUp(suggestion) {
-    const questionInput = document.getElementById('ai-question');
-    if (questionInput) {
-        questionInput.value = suggestion;
-        askAI();
-    }
-}
+async function sendMessage() {
+    const chatInput = document.getElementById('chat-input');
+    const content = chatInput?.value;
 
-function formatAIResponse(text) {
-    if (!text) return '<p>No response</p>';
-
-    let formatted = text
-        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
-        .replace(/`(.*?)`/g, '<code>$1</code>')
-        .replace(/^\d+\. (.*$)/gm, '<li>$1</li>')
-        .replace(/^[-*] (.*$)/gm, '<li>$1</li>')
-        .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br>');
-
-    if (!formatted.startsWith('<h1') && !formatted.startsWith('<h2') && !formatted.startsWith('<h3')) {
-        formatted = `<p>${formatted}</p>`;
+    if (!content || !content.trim()) {
+        alert('Please type a message');
+        return;
     }
 
-    return `<div class="ai-response">${formatted}</div>`;
-}
-
-// ============ STUDY TRACKER ============
-
-async function trackStudy() {
-    const hoursInput = document.getElementById('study-hours');
-    const topicsInput = document.getElementById('study-topics');
-
-    const hours = parseFloat(hoursInput?.value);
-    const topics = topicsInput?.value || '';
-
-    if (!hours || hours <= 0) {
-        alert('Please enter valid hours');
+    if (!window.currentChatUser) {
+        alert('Please select a mentor first');
         return;
     }
 
     try {
-        const response = await fetch(`${API_URL}/study/track`, {
+        const response = await fetch(`${API_URL}/chat/send`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-                hours,
-                topics: topics.split(',').map(t => t.trim()).filter(t => t)
+                receiverId: window.currentChatUser,
+                content: content.trim()
             })
         });
 
         const data = await response.json();
 
         if (data.success) {
-            alert(`✅ Tracked ${hours} hours! Total: ${data.data.totalHours} hours`);
-            if (hoursInput) hoursInput.value = '';
-            if (topicsInput) topicsInput.value = '';
-            loadStudyStats();
+            chatInput.value = '';
+            const messagesDiv = document.getElementById('chat-messages');
+            messagesDiv.innerHTML += `
+                <div class="chat-message sent">
+                    <p>${escapeHtml(content.trim())}</p>
+                    <small>Just now</small>
+                </div>
+            `;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            if (socket) {
+                socket.emit('send_message', {
+                    receiverId: window.currentChatUser,
+                    ...data.data
+                });
+            }
+            loadConversations();
+        } else {
+            alert(data.message || 'Failed to send');
         }
     } catch (error) {
-        console.error('Error tracking study:', error);
-        alert('Failed to track study hours');
+        console.error('Send error:', error);
+        alert('Failed to send message');
     }
 }
 
-async function loadStudyStats() {
+async function loadConversations() {
     try {
-        const response = await fetch(`${API_URL}/study/stats`, {
+        const response = await fetch(`${API_URL}/chat/conversations`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         const data = await response.json();
+        const convList = document.getElementById('conversations-list');
 
-        if (data.success) {
-            document.getElementById('streak-count').textContent = data.data.streak || 0;
-            document.getElementById('total-hours').textContent = data.data.totalHours || 0;
-            document.getElementById('total-stars').textContent = data.data.stars || 0;
+        if (!convList) return;
 
-            if (data.data.weeklyData) {
-                updateStudyChart(data.data.weeklyData);
-            } else {
-                updateStudyChart([2, 4, 3, 5, 6, 4, 3]);
-            }
+        if (data.success && data.data && data.data.length > 0) {
+            convList.innerHTML = data.data.map(conv => `
+                <div class="conversation-item" onclick="openChat('${conv.user._id}', '${conv.user.name}')">
+                    <img src="${conv.user.avatar || 'https://via.placeholder.com/40'}" alt="${conv.user.name}">
+                    <div class="conv-info">
+                        <strong>${conv.user.name}</strong>
+                        <p>${conv.lastMessage?.content?.substring(0, 30) || 'Click to chat'}</p>
+                    </div>
+                    ${conv.unreadCount > 0 ? `<span class="unread-count">${conv.unreadCount}</span>` : ''}
+                </div>
+            `).join('');
+        } else {
+            convList.innerHTML = '<p style="text-align:center; padding:20px;">💬 No conversations yet.<br>Click "Chat" on any mentor to start!</p>';
         }
     } catch (error) {
-        console.error('Error loading stats:', error);
+        console.error('Error loading conversations:', error);
     }
-}
-
-function updateStudyChart(weeklyData) {
-    const ctx = document.getElementById('studyChart');
-    if (!ctx) return;
-
-    const canvasContext = ctx.getContext('2d');
-
-    if (studyChart) {
-        studyChart.destroy();
-    }
-
-    studyChart = new Chart(canvasContext, {
-        type: 'line',
-        data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [{
-                label: 'Hours Studied',
-                data: weeklyData,
-                borderColor: '#667eea',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointBackgroundColor: '#667eea',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 7
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: { backgroundColor: '#1e293b', titleColor: '#fff', bodyColor: '#e2e8f0' }
-            },
-            scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'Hours' } },
-                x: { title: { display: true, text: 'Day' } }
-            }
-        }
-    });
 }
 
 // ============ MENTORS ============
+
 async function loadMentors() {
     try {
         const subjectFilter = document.getElementById('mentor-subject-filter');
@@ -577,16 +503,101 @@ async function loadMentors() {
         if (mentorsList) mentorsList.innerHTML = '<p>Error loading mentors. Please try again.</p>';
     }
 }
+
 function searchMentors() {
     loadMentors();
+}
+
+// ============ STUDY TRACKER ============
+
+async function trackStudy() {
+    const hoursInput = document.getElementById('study-hours');
+    const topicsInput = document.getElementById('study-topics');
+
+    const hours = parseFloat(hoursInput?.value);
+    const topics = topicsInput?.value || '';
+
+    if (!hours || hours <= 0) {
+        alert('Please enter valid hours');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/study/track`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                hours,
+                topics: topics.split(',').map(t => t.trim()).filter(t => t)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(`✅ Tracked ${hours} hours! Total: ${data.data.totalHours} hours`);
+            if (hoursInput) hoursInput.value = '';
+            if (topicsInput) topicsInput.value = '';
+            loadStudyStats();
+        }
+    } catch (error) {
+        console.error('Error tracking study:', error);
+        alert('Failed to track study hours');
+    }
+}
+
+async function loadStudyStats() {
+    try {
+        const response = await fetch(`${API_URL}/study/stats`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('streak-count').textContent = data.data.streak || 0;
+            document.getElementById('total-hours').textContent = data.data.totalHours || 0;
+            document.getElementById('total-stars').textContent = data.data.stars || 0;
+            updateStudyChart([2, 4, 3, 5, 6, 4, 3]);
+        }
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+function updateStudyChart(weeklyData) {
+    const ctx = document.getElementById('studyChart');
+    if (!ctx) return;
+
+    if (studyChart) studyChart.destroy();
+
+    studyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Hours Studied',
+                data: weeklyData,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true
+        }
+    });
 }
 
 // ============ KNOWLEDGE GRAPH ============
 
 async function buildKnowledgeGraph() {
-    const subjectSelect = document.getElementById('knowledge-subject');
-    const subject = subjectSelect?.value;
-
+    const subject = document.getElementById('knowledge-subject')?.value;
     if (!subject) {
         alert('Please select a subject');
         return;
@@ -603,12 +614,9 @@ async function buildKnowledgeGraph() {
         });
 
         const data = await response.json();
-
         if (data.success) {
             renderKnowledgeGraph(data.data);
             displayRecommendations(data.data);
-        } else {
-            alert('Failed to build knowledge graph');
         }
     } catch (error) {
         console.error('Error building graph:', error);
@@ -629,17 +637,13 @@ function renderKnowledgeGraph(graph) {
     const progress = graph.progress || 0;
 
     container.innerHTML = `
-        <div class="progress-bar">
-            <div class="progress-fill" style="width: ${progress}%"></div>
-        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%"></div></div>
         <div class="graph-nodes">
             ${graph.nodes.map(node => `
-                <div class="graph-node ${completed.has(node.id) ? 'completed' : ''} ${graph.recommendedNext?.includes(node.id) ? 'recommended' : ''}">
+                <div class="graph-node ${completed.has(node.id) ? 'completed' : ''}">
                     <div class="node-title">${node.name}</div>
                     <div class="node-difficulty">${node.difficulty}</div>
-                    ${!completed.has(node.id) && graph.recommendedNext?.includes(node.id) ? `
-                        <button onclick="completeTopic('${node.id}')" class="btn-complete">Mark Complete ✓</button>
-                    ` : completed.has(node.id) ? '<span class="completed-badge">✅ Completed</span>' : ''}
+                    ${!completed.has(node.id) ? `<button onclick="completeTopic('${node.id}')" class="btn-complete">Mark Complete ✓</button>` : '<span>✅ Completed</span>'}
                 </div>
             `).join('')}
         </div>
@@ -651,29 +655,25 @@ function displayRecommendations(graph) {
     if (!recDiv) return;
 
     if (!graph.recommendedNext || graph.recommendedNext.length === 0) {
-        recDiv.innerHTML = '<p>🎉 You\'ve completed all topics! Great job!</p>';
+        recDiv.innerHTML = '<p>🎉 You\'ve completed all topics!</p>';
         return;
     }
 
     const recommendedNodes = graph.nodes.filter(n => graph.recommendedNext.includes(n.id));
     recDiv.innerHTML = `
         <h3>📚 Recommended Next Steps</h3>
-        <div class="recommendations-list">
-            ${recommendedNodes.map(node => `
-                <div class="rec-item">
-                    <strong>${node.name}</strong>
-                    <p>Difficulty: ${node.difficulty}</p>
-                    <button onclick="completeTopic('${node.id}')" class="btn-start">Start Learning →</button>
-                </div>
-            `).join('')}
-        </div>
+        ${recommendedNodes.map(node => `
+            <div class="rec-item">
+                <strong>${node.name}</strong>
+                <p>Difficulty: ${node.difficulty}</p>
+                <button onclick="completeTopic('${node.id}')" class="btn-start">Start Learning →</button>
+            </div>
+        `).join('')}
     `;
 }
 
 async function completeTopic(nodeId) {
-    const subjectSelect = document.getElementById('knowledge-subject');
-    const subject = subjectSelect?.value;
-
+    const subject = document.getElementById('knowledge-subject')?.value;
     try {
         const response = await fetch(`${API_URL}/knowledge/complete/${nodeId}`, {
             method: 'PUT',
@@ -685,7 +685,6 @@ async function completeTopic(nodeId) {
         });
 
         const data = await response.json();
-
         if (data.success) {
             alert(data.message);
             renderKnowledgeGraph(data.data);
@@ -693,14 +692,11 @@ async function completeTopic(nodeId) {
         }
     } catch (error) {
         console.error('Error completing topic:', error);
-        alert('Failed to mark topic as complete');
     }
 }
 
 async function loadKnowledgeGraph() {
-    const subjectSelect = document.getElementById('knowledge-subject');
-    const subject = subjectSelect?.value || 'Computer Science';
-
+    const subject = document.getElementById('knowledge-subject')?.value || 'Computer Science';
     try {
         const response = await fetch(`${API_URL}/knowledge/my-graph?subject=${subject}`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -725,7 +721,6 @@ async function loadMockTests() {
         });
 
         const data = await response.json();
-
         const testsDiv = document.getElementById('mocktests-list');
         if (!testsDiv) return;
 
@@ -739,186 +734,15 @@ async function loadMockTests() {
                 </div>
             `).join('');
         } else {
-            testsDiv.innerHTML = '<p>No mock tests available yet. Check back soon!</p>';
+            testsDiv.innerHTML = '<p>No mock tests available yet.</p>';
         }
     } catch (error) {
         console.error('Error loading tests:', error);
-        const testsDiv = document.getElementById('mocktests-list');
-        if (testsDiv) testsDiv.innerHTML = '<p>Error loading tests</p>';
     }
 }
 
 async function startTest(testId) {
     alert('Test feature coming soon!');
-}
-
-// ============ CHAT ============
-
-function initSocket() {
-    if (socket) socket.disconnect();
-
-    try {
-        socket = io('https://think-tank-ai-backend.onrender.com');
-        socket.emit('join', currentUser._id);
-
-        socket.on('receive_message', (message) => {
-            if (window.currentChatUser === message.senderId) {
-                displayMessage(message);
-            }
-            loadConversations();
-            updateUnreadBadge();
-        });
-    } catch (error) {
-        console.error('Socket connection error:', error);
-    }
-}
-
-async function loadConversations() {
-    try {
-        const response = await fetch(`${API_URL}/chat/conversations`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const data = await response.json();
-
-        const convList = document.getElementById('conversations-list');
-        if (!convList) return;
-
-        if (data.success && data.data && data.data.length > 0) {
-            convList.innerHTML = data.data.map(conv => `
-                <div class="conversation-item" onclick="openChat('${conv.user._id}', '${conv.user.name}')">
-                    <img src="${conv.user.avatar || 'https://via.placeholder.com/40'}" alt="${conv.user.name}">
-                    <div class="conv-info">
-                        <strong>${conv.user.name}</strong>
-                        <p>${conv.lastMessage?.content?.substring(0, 30) || 'Click to start chatting'}</p>
-                    </div>
-                    ${conv.unreadCount > 0 ? `<span class="unread-count">${conv.unreadCount}</span>` : ''}
-                </div>
-            `).join('');
-        } else {
-            convList.innerHTML = '<p style="text-align: center; padding: 20px;">💬 No conversations yet.<br>Click "Chat" on any mentor to start!</p>';
-        }
-    } catch (error) {
-        console.error('Error loading conversations:', error);
-    }
-}
-
-function openChat(userId, userName) {
-    window.currentChatUser = userId;
-
-    const convList = document.getElementById('conversations-list');
-    const chatArea = document.getElementById('chat-area');
-    const chatUserName = document.getElementById('chat-user-name');
-
-    if (convList) convList.style.display = 'none';
-    if (chatArea) chatArea.style.display = 'flex';
-    if (chatUserName) chatUserName.textContent = userName;
-
-    loadMessages(userId);
-}
-
-async function loadMessages(userId) {
-    try {
-        const response = await fetch(`${API_URL}/chat/messages/${userId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const data = await response.json();
-
-        const messagesDiv = document.getElementById('chat-messages');
-        if (!messagesDiv) return;
-
-        if (data.success && data.data.length > 0) {
-            messagesDiv.innerHTML = data.data.map(msg => `
-                <div class="chat-message ${msg.sender._id === currentUser._id ? 'sent' : 'received'}">
-                    <p>${escapeHtml(msg.content)}</p>
-                    <small>${new Date(msg.createdAt).toLocaleTimeString()}</small>
-                </div>
-            `).join('');
-        } else {
-            messagesDiv.innerHTML = '<p>No messages yet. Say hello!</p>';
-        }
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    } catch (error) {
-        console.error('Error loading messages:', error);
-    }
-}
-async function sendMessage() {
-    const chatInput = document.getElementById('chat-input');
-    const content = chatInput?.value;
-
-    if (!content || !content.trim()) {
-        alert('Please type a message');
-        return;
-    }
-
-    if (!window.currentChatUser) {
-        alert('Please select a mentor first');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/chat/send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                receiverId: window.currentChatUser,
-                content: content.trim()
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            chatInput.value = '';
-            // Add message to chat
-            const messagesDiv = document.getElementById('chat-messages');
-            messagesDiv.innerHTML += `
-                <div class="chat-message sent">
-                    <p>${escapeHtml(content.trim())}</p>
-                    <small>Just now</small>
-                </div>
-            `;
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        } else {
-            alert(data.message || 'Failed to send');
-        }
-    } catch (error) {
-        console.error('Send error:', error);
-        alert('Failed to send message');
-    }
-}
-
-function displayMessage(message) {
-    const messagesDiv = document.getElementById('chat-messages');
-    if (!messagesDiv) return;
-
-    messagesDiv.innerHTML += `
-        <div class="chat-message ${message.sender._id === currentUser._id ? 'sent' : 'received'}">
-            <p>${escapeHtml(message.content)}</p>
-            <small>${new Date(message.createdAt).toLocaleTimeString()}</small>
-        </div>
-    `;
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-function toggleChat() {
-    const chatBody = document.getElementById('chat-body');
-    if (chatBody) {
-        chatBody.style.display = chatBody.style.display === 'none' ? 'flex' : 'none';
-    }
-}
-
-function chatWithMentor(mentorId, mentorName) {
-    openChat(mentorId, mentorName);
-}
-
-function updateUnreadBadge() {
-    const badge = document.getElementById('unread-badge');
-    if (badge) badge.style.display = 'none';
 }
 
 // ============ VIDEO CALLS ============
@@ -954,18 +778,10 @@ async function startVideoCall(targetUserId, callType = 'video') {
 }
 
 function setupWebRTC(targetUserId) {
-    const configuration = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-    };
-
+    const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
     peerConnection = new RTCPeerConnection(configuration);
 
-    localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-    });
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
     peerConnection.ontrack = (event) => {
         document.getElementById('remoteVideo').srcObject = event.streams[0];
@@ -1008,25 +824,19 @@ let isVideoOff = false;
 
 function toggleMute() {
     if (localStream) {
-        const audioTracks = localStream.getAudioTracks();
-        audioTracks.forEach(track => track.enabled = !track.enabled);
+        localStream.getAudioTracks().forEach(track => track.enabled = !track.enabled);
         isMuted = !isMuted;
         const muteBtn = document.getElementById('muteBtn');
-        if (muteBtn) {
-            muteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
-        }
+        if (muteBtn) muteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
     }
 }
 
 function toggleVideo() {
     if (localStream) {
-        const videoTracks = localStream.getVideoTracks();
-        videoTracks.forEach(track => track.enabled = !track.enabled);
+        localStream.getVideoTracks().forEach(track => track.enabled = !track.enabled);
         isVideoOff = !isVideoOff;
         const videoBtn = document.getElementById('videoBtn');
-        if (videoBtn) {
-            videoBtn.innerHTML = isVideoOff ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
-        }
+        if (videoBtn) videoBtn.innerHTML = isVideoOff ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
     }
 }
 
@@ -1035,12 +845,7 @@ async function endCall() {
         localStream.getTracks().forEach(track => track.stop());
         localStream = null;
     }
-
-    if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-    }
-
+    if (peerConnection) peerConnection.close();
     if (currentCallId) {
         await fetch(`${API_URL}/video/end/${currentCallId}`, {
             method: 'POST',
@@ -1048,7 +853,6 @@ async function endCall() {
         });
         currentCallId = null;
     }
-
     closeVideoCall();
 }
 
@@ -1056,7 +860,6 @@ async function endCall() {
 
 async function requestSession(mentorId, type) {
     const price = type === 'video' ? 100 : 50;
-
     if (confirm(`Book a ${type} session for $${price}?`)) {
         try {
             const response = await fetch(`${API_URL}/sessions/create`, {
@@ -1067,12 +870,8 @@ async function requestSession(mentorId, type) {
                 },
                 body: JSON.stringify({ mentorId, type, price })
             });
-
             const data = await response.json();
-
-            if (data.success) {
-                alert(`✅ Session booked! Please complete payment.`);
-            }
+            if (data.success) alert(`✅ Session booked!`);
         } catch (error) {
             console.error('Error booking session:', error);
             alert('Failed to book session');
@@ -1083,13 +882,9 @@ async function requestSession(mentorId, type) {
 // ============ PROFILE ============
 
 async function updateProfile() {
-    const editName = document.getElementById('edit-name');
-    const editBio = document.getElementById('edit-bio');
-    const editSkills = document.getElementById('edit-skills');
-
-    const name = editName?.value;
-    const bio = editBio?.value;
-    const skills = editSkills ? Array.from(editSkills.selectedOptions).map(opt => opt.value) : [];
+    const name = document.getElementById('edit-name')?.value;
+    const bio = document.getElementById('edit-bio')?.value;
+    const skills = Array.from(document.getElementById('edit-skills')?.selectedOptions || []).map(opt => opt.value);
 
     try {
         const response = await fetch(`${API_URL}/users/profile`, {
@@ -1102,16 +897,11 @@ async function updateProfile() {
         });
 
         const data = await response.json();
-
         if (data.success) {
             alert('Profile updated!');
             currentUser = data.data;
-
-            const profileName = document.getElementById('profile-name');
-            if (profileName) profileName.textContent = currentUser.name;
-
-            const userNameNav = document.getElementById('user-name-nav');
-            if (userNameNav) userNameNav.textContent = currentUser.name;
+            document.getElementById('profile-name').textContent = currentUser.name;
+            document.getElementById('user-name-nav').textContent = currentUser.name;
         }
     } catch (error) {
         console.error('Error updating profile:', error);
@@ -1124,7 +914,6 @@ async function updateProfile() {
 function showAuthModal(type) {
     const modal = document.getElementById('auth-modal');
     if (!modal) return;
-
     modal.style.display = 'block';
 
     const loginForm = document.getElementById('login-form');
@@ -1145,7 +934,6 @@ function resetRegistrationForm() {
     const mentorFields = document.getElementById('mentor-fields');
     if (studentFields) studentFields.style.display = 'block';
     if (mentorFields) mentorFields.style.display = 'none';
-
     const education = document.getElementById('register-education');
     if (education) education.value = 'school';
     toggleCollegeFields();
@@ -1176,8 +964,30 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function formatMarkdown(text) {
-    return text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+function initSocket() {
+    if (socket) socket.disconnect();
+    try {
+        socket = io('https://think-tank-ai-backend.onrender.com');
+        socket.emit('join', currentUser._id);
+        socket.on('receive_message', (message) => {
+            if (window.currentChatUser === message.senderId) displayMessage(message);
+            loadConversations();
+        });
+    } catch (error) {
+        console.error('Socket error:', error);
+    }
+}
+
+function displayMessage(message) {
+    const messagesDiv = document.getElementById('chat-messages');
+    if (!messagesDiv) return;
+    messagesDiv.innerHTML += `
+        <div class="chat-message ${message.sender._id === currentUser._id ? 'sent' : 'received'}">
+            <p>${escapeHtml(message.content)}</p>
+            <small>${new Date(message.createdAt).toLocaleTimeString()}</small>
+        </div>
+    `;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 // ============ INITIALIZATION ============
@@ -1201,44 +1011,4 @@ if (savedToken) {
         .catch(() => {
             localStorage.removeItem('token');
         });
-    // ============ CHAT FUNCTIONS ============
-
-    function chatWithMentor(mentorId, mentorName) {
-        console.log('🟢 Chat button clicked for:', mentorName);
-
-        // Set current chat user
-        window.currentChatUser = mentorId;
-
-        // Get all elements
-        const chatWidget = document.getElementById('chat-widget');
-        const convList = document.getElementById('conversations-list');
-        const chatArea = document.getElementById('chat-area');
-        const chatUserName = document.getElementById('chat-user-name');
-        const chatMessages = document.getElementById('chat-messages');
-
-        // Show chat widget
-        if (chatWidget) chatWidget.style.display = 'flex';
-
-        // Switch to chat area
-        if (convList) convList.style.display = 'none';
-        if (chatArea) chatArea.style.display = 'flex';
-        if (chatUserName) chatUserName.textContent = mentorName;
-
-        // Clear messages
-        if (chatMessages) chatMessages.innerHTML = '<p>Loading messages...</p>';
-
-        console.log('✅ Chat widget should be open now');
-    }
-
-    function openChat(userId, userName) {
-        chatWithMentor(userId, userName);
-    }
-    function closeChatWidget() {
-        const chatWidget = document.getElementById('chat-widget');
-        if (chatWidget) {
-            chatWidget.style.display = 'none';
-        }
-        window.currentChatUser = null;
-    }
-
 }
