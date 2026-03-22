@@ -22,6 +22,7 @@ app.get('/api/simple-test', (req, res) => {
 // Import all routes - EACH ONLY ONCE
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
+const uploadRoutes = require('./routes/upload');
 const questionRoutes = require('./routes/questions');
 const mentorshipRoutes = require('./routes/mentorship');
 const mocktestRoutes = require('./routes/mocktests');
@@ -36,6 +37,7 @@ const videoRoutes = require('./routes/video');  // <-- ONLY ONE TIME
 // Mount all routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/mentorship', mentorshipRoutes);
 app.use('/api/mocktests', mocktestRoutes);
