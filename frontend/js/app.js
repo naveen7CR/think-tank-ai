@@ -1196,4 +1196,36 @@ if (savedToken) {
         .catch(() => {
             localStorage.removeItem('token');
         });
+    // ============ CHAT FUNCTIONS ============
+
+    function chatWithMentor(mentorId, mentorName) {
+        console.log('🟢 Chat button clicked for:', mentorName);
+
+        // Set current chat user
+        window.currentChatUser = mentorId;
+
+        // Get all elements
+        const chatWidget = document.getElementById('chat-widget');
+        const convList = document.getElementById('conversations-list');
+        const chatArea = document.getElementById('chat-area');
+        const chatUserName = document.getElementById('chat-user-name');
+        const chatMessages = document.getElementById('chat-messages');
+
+        // Show chat widget
+        if (chatWidget) chatWidget.style.display = 'flex';
+
+        // Switch to chat area
+        if (convList) convList.style.display = 'none';
+        if (chatArea) chatArea.style.display = 'flex';
+        if (chatUserName) chatUserName.textContent = mentorName;
+
+        // Clear messages
+        if (chatMessages) chatMessages.innerHTML = '<p>Loading messages...</p>';
+
+        console.log('✅ Chat widget should be open now');
+    }
+
+    function openChat(userId, userName) {
+        chatWithMentor(userId, userName);
+    }
 }
