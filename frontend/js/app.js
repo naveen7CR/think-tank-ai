@@ -500,7 +500,6 @@ function updateStudyChart(weeklyData) {
 }
 
 // ============ MENTORS ============
-
 async function loadMentors() {
     try {
         const subjectFilter = document.getElementById('mentor-subject-filter');
@@ -556,9 +555,15 @@ async function loadMentors() {
                         <p class="mentor-skills">${m.skillTags?.join(' • ') || 'General'}</p>
                         <p class="mentor-bio">${m.bio || 'Expert mentor ready to help!'}</p>
                         <div class="mentor-buttons">
-                            <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat"><i class="fas fa-comment"></i> Chat</button>
-                            <button onclick="requestSession('${m._id}', 'chat')" class="btn-session"><i class="fas fa-calendar-alt"></i> Book Session</button>
-                            <button onclick="startVideoCall('${m._id}', 'video')" class="btn-video"><i class="fas fa-video"></i> Video Call</button>
+                            <button onclick="chatWithMentor('${m._id}', '${m.name}')" class="btn-chat">
+                                <i class="fas fa-comment"></i> Chat
+                            </button>
+                            <button onclick="requestSession('${m._id}', 'chat')" class="btn-session">
+                                <i class="fas fa-calendar-alt"></i> Book Session
+                            </button>
+                            <button onclick="startVideoCall('${m._id}', 'video')" class="btn-video">
+                                <i class="fas fa-video"></i> Video Call
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -572,7 +577,6 @@ async function loadMentors() {
         if (mentorsList) mentorsList.innerHTML = '<p>Error loading mentors. Please try again.</p>';
     }
 }
-
 function searchMentors() {
     loadMentors();
 }
