@@ -843,14 +843,17 @@ async function loadMessages(userId) {
         console.error('Error loading messages:', error);
     }
 }
-
 async function sendMessage() {
     const chatInput = document.getElementById('chat-input');
     const content = chatInput?.value;
 
-    if (!content || !content.trim()) return;
+    if (!content || !content.trim()) {
+        alert('Please type a message');
+        return;
+    }
+
     if (!window.currentChatUser) {
-        alert('Please select a mentor to chat with first');
+        alert('Please select a mentor first');
         return;
     }
 
@@ -870,20 +873,22 @@ async function sendMessage() {
         const data = await response.json();
 
         if (data.success) {
-            if (chatInput) chatInput.value = '';
-            displayMessage(data.data);
-            if (socket) {
-                socket.emit('send_message', {
-                    receiverId: window.currentChatUser,
-                    ...data.data
-                });
-            }
-            loadConversations();
+            chatInput.value = '';
+            // Add message to chat
+            const messagesDiv = document.getElementById('chat-messages');
+            messagesDiv.innerHTML += `
+                <div class="chat-message sent">
+                    <p>${escapeHtml(content.trim())}</p>
+                    <small>Just now</small>
+                </div>
+            `;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         } else {
-            console.error('Send message error:', data.message);
+            alert(data.message || 'Failed to send');
         }
     } catch (error) {
-        console.error('Error sending message:', error);
+        console.error('Send error:', error);
+        alert('Failed to send message');
     }
 }
 
@@ -1228,4 +1233,12 @@ if (savedToken) {
     function openChat(userId, userName) {
         chatWithMentor(userId, userName);
     }
+    function closeChatWidget() {
+        const chatWidget = document.getElementById('chat-widget');
+        if (chatWidget) {
+            chatWidget.style.display = 'none';
+        }
+        window.currentChatUser = null;
+    }
+
 }
