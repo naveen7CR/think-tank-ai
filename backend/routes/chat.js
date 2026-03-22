@@ -90,7 +90,3 @@ router.post('/send', protect, async (req, res) => {
 
 module.exports = router;
 
-const { sendNewMessageNotification } = require('../utils/emailService');
-
-// In send message route, after saving message:
-await sendNewMessageNotification(receiver.email, sender.name, content);
