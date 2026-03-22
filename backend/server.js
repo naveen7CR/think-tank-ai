@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/database');
+const paymentRoutes = require('./routes/payment');
 
 dotenv.config();
 connectDB();
@@ -48,6 +49,7 @@ app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/video', videoRoutes);  // <-- ONLY ONE TIME
+app.use('/api/payment', paymentRoutes);
 
 const PORT = process.env.PORT || 5000;
 
