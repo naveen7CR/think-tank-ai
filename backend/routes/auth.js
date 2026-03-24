@@ -15,7 +15,6 @@ router.post('/register', async (req, res) => {
     try {
         const { name, email, password, role, skillTags } = req.body;
 
-        // Check if user exists
         const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({
@@ -24,7 +23,6 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Create user
         const user = await User.create({
             name,
             email,
@@ -43,7 +41,8 @@ router.post('/register', async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                stars: user.stars
+                stars: user.stars,
+                avatar: user.avatar  // ✅ ADDED AVATAR
             }
         });
     } catch (error) {
@@ -60,7 +59,6 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Check for user
         const user = await User.findOne({ email }).select('+password');
 
         if (!user) {
@@ -70,7 +68,6 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // Check password
         const isMatch = await user.matchPassword(password);
 
         if (!isMatch) {
@@ -91,7 +88,8 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 role: user.role,
                 stars: user.stars,
-                mentorRating: user.mentorRating
+                mentorRating: user.mentorRating,
+                avatar: user.avatar  // ✅ ADDED AVATAR
             }
         });
     } catch (error) {
@@ -103,4 +101,24 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Get current user
+router.get('/me', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+        
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
+        
+        res.json({ success: true, user });
+    } catch (error) {
+        res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+});
+
 module.exports = router;
+            
+              
+        
