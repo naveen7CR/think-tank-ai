@@ -857,9 +857,9 @@ async function endCall() {
 }
 
 // ============ SESSION BOOKING ============
-
 async function requestSession(mentorId, type) {
     const price = type === 'video' ? 100 : 50;
+
     if (confirm(`Book a ${type} session for $${price}?`)) {
         try {
             const response = await fetch(`${API_URL}/sessions/create`, {
@@ -870,11 +870,24 @@ async function requestSession(mentorId, type) {
                 },
                 body: JSON.stringify({ mentorId, type, price })
             });
+
             const data = await response.json();
-            if (data.success) alert(`✅ Session booked!`);
+
+            if (data.success) {
+                // Show success message
+                alert(`✅ Session booked successfully!\n\nMentor session confirmed.\nYou can now chat or video call with your mentor.`);
+
+                // Optional: Refresh the page or show in console
+                console.log('Session booked:', data.data);
+
+                // Reload conversations to show new session
+                loadConversations();
+            } else {
+                alert('❌ Failed to book session: ' + (data.message || 'Unknown error'));
+            }
         } catch (error) {
             console.error('Error booking session:', error);
-            alert('Failed to book session');
+            alert('❌ Failed to book session. Please try again.');
         }
     }
 }
@@ -1011,4 +1024,73 @@ if (savedToken) {
         .catch(() => {
             localStorage.removeItem('token');
         });
+}
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark);
+    const btn = document.querySelector('.dark-mode-btn i');
+    if (btn) {
+        btn.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+    }
+}
+
+// Load dark mode preference
+if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark-mode');
+    const btn = document.querySelector('.dark-mode-btn i');
+    if (btn) btn.className = 'fas fa-sun';
+}
+
+async function requestNotificationPermission() {
+    if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('Notifications enabled');
+        }
+    }
+}
+
+function showNotification(title, body) {
+    if (Notification.permission === 'granted') {
+        new Notification(title, { body, icon: '/favicon.ico' });
+    }
+}
+
+// Call when user logs in
+requestNotificationPermission();
+
+// Show notification on new message
+socket.on('receive_message', (message) => {
+    if (document.hidden) {
+        showNotification('New Message', `From: ${message.senderName}`);
+    }
+});
+
+async function processPayment(amount, sessionId) {
+    try {
+        const response = await fetch(`${API_URL}/payment/create-payment-intent`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ amount, sessionId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // For demo, show success
+            alert(`✅ Payment of $${amount} successful!`);
+            return true;
+        } else {
+            alert('Payment failed: ' + data.error);
+            return false;
+        }
+    } catch (error) {
+        console.error('Payment error:', error);
+        alert('Payment processing error');
+        return false;
+    }
 }
