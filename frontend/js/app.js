@@ -1229,3 +1229,112 @@ function setStudyReminder() {
 // Add to quick actions
 // Add this button to your quick actions HTML:
 // <button onclick="setStudyReminder()" class="action-btn"><i class="fas fa-bell"></i><span>Set Reminder</span></button>
+
+// Achievements
+const achievementsList = {
+    firstLogin: { name: 'First Login', icon: '🎉', description: 'Logged in for the first time', condition: () => true },
+    firstChat: { name: 'First Chat', icon: '💬', description: 'Sent your first message', condition: (user) => user.totalChats >= 1 },
+    tenHours: { name: 'Dedicated Learner', icon: '⏰', description: 'Studied 10+ hours', condition: (user) => user.studyHours >= 10 },
+    fiftyHours: { name: 'Study Master', icon: '🏆', description: 'Studied 50+ hours', condition: (user) => user.studyHours >= 50 },
+    starCollector: { name: 'Star Collector', icon: '⭐', description: 'Earned 100 stars', condition: (user) => user.stars >= 100 },
+    mentorStar: { name: 'Star Mentor', icon: '🌟', description: 'Earned 500 stars as mentor', condition: (user) => user.role === 'mentor' && user.stars >= 500 },
+    firstSession: { name: 'First Session', icon: '🎯', description: 'Booked your first session', condition: (user) => user.totalSessions >= 1 },
+    questionMaster: { name: 'Question Master', icon: '📝', description: 'Asked 10 questions', condition: (user) => user.totalQuestions >= 10 },
+    helper: { name: 'Helper', icon: '🤝', description: 'Answered 5 questions', condition: (user) => user.totalAnswers >= 5 }
+};
+
+function checkAndAwardAchievements(user) {
+    const newAchievements = [];
+
+    Object.keys(achievementsList).forEach(key => {
+        const achievement = achievementsList[key];
+        const alreadyHas = user.achievements?.some(a => a.name === achievement.name);
+
+        if (!alreadyHas && achievement.condition(user)) {
+            newAchievements.push(achievement);
+            user.achievements = user.achievements || [];
+            user.achievements.push({
+                name: achievement.name,
+                icon: achievement.icon,
+                description: achievement.description,
+                earnedAt: new Date()
+            });
+
+            // Show achievement popup
+            showAchievementPopup(achievement);
+
+            // Save to backend
+            saveAchievementToBackend(achievement);
+        }
+    });
+
+    return newAchievements;
+}
+
+function showAchievementPopup(achievement) {
+    const popup = document.createElement('div');
+    popup.className = 'achievement-popup';
+    popup.innerHTML = `
+        <div class="achievement-content">
+            <span class="achievement-icon">${achievement.icon}</span>
+            <div>
+                <strong>Achievement Unlocked!</strong>
+                <p>${achievement.name}</p>
+                <small>${achievement.description}</small>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(popup);
+
+    // Play sound (optional)
+    // new Audio('/sounds/achievement.mp3').play();
+
+    setTimeout(() => popup.remove(), 4000);
+}
+
+async function saveAchievementToBackend(achievement) {
+    try {
+        await fetch(`${API_URL}/users/achievement`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ achievement })
+        });
+    } catch (error) {
+        console.error('Failed to save achievement:', error);
+    }
+}
+
+async function loadLeaderboard(type = 'students') {
+    try {
+        const response = await fetch(`${API_URL}/users/leaderboard?type=${type}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+        const leaderboardList = document.getElementById('leaderboard-list');
+
+        if (data.success && data.data.length > 0) {
+            leaderboardList.innerHTML = data.data.map((user, index) => `
+                <div class="leaderboard-item ${index < 3 ? 'top-three' : ''}">
+                    <div class="rank">#${index + 1}</div>
+                    <img src="${user.avatar || 'https://via.placeholder.com/50'}" class="leaderboard-avatar">
+                    <div class="leaderboard-info">
+                        <h4>${user.name}</h4>
+                        <p>${user.role === 'mentor' ? 'Mentor' : 'Student'}</p>
+                    </div>
+                    <div class="leaderboard-score">
+                        <i class="fas fa-star"></i>
+                        <span>${user.stars || 0} stars</span>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            leaderboardList.innerHTML = '<p>No users yet. Be the first!</p>';
+        }
+    } catch (error) {
+        console.error('Error loading leaderboard:', error);
+    }
+}

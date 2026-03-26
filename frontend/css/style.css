@@ -1846,3 +1846,134 @@ body {
 .action-btn:hover {
     transform: translateY(-3px);
 }
+
+/* Achievements */
+.achievement-popup {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    animation: slideInLeft 0.5s ease;
+    z-index: 10000;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.achievements-section {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.achievement-card {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.achievement-card.earned {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.achievement-card i {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.achievement-card h4 {
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.achievement-card p {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+/* Leaderboard */
+.leaderboard-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    padding: 8px 20px;
+    border: none;
+    background: #e2e8f0;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.tab-btn.active {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    transition: transform 0.3s;
+}
+
+.leaderboard-item.top-three {
+    background: linear-gradient(135deg, #fff5e6, #fff);
+    border-left: 4px solid #ffd700;
+}
+
+.rank {
+    font-size: 1.5rem;
+    font-weight: bold;
+    width: 50px;
+    color: #667eea;
+}
+
+.leaderboard-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.leaderboard-info {
+    flex: 1;
+}
+
+.leaderboard-score {
+    text-align: right;
+}
+
+.leaderboard-score i {
+    color: #ffd700;
+}

@@ -261,10 +261,18 @@
         </section>
 
         <!-- Profile Section -->
+
         <section id="profile-section" class="section-content">
             <div class="section-header">
                 <h2><i class="fas fa-user"></i> My Profile</h2>
                 <p>Manage your account settings</p>
+            </div>
+            <!-- Achievements Section -->
+            <div class="achievements-section">
+                <h3><i class="fas fa-trophy"></i> Achievements</h3>
+                <div id="achievements-list" class="achievements-grid">
+                    <p>Complete activities to unlock achievements!</p>
+                </div>
             </div>
             <div class="profile-header">
                 <div class="avatar-upload">
@@ -565,6 +573,19 @@
             </div>
         </div>
     </div>
+
+    <!-- Leaderboard Section -->
+    <section id="leaderboard-section" class="section-content">
+        <div class="section-header">
+            <h2><i class="fas fa-chart-line"></i> Leaderboard</h2>
+            <p>Top students and mentors</p>
+        </div>
+        <div class="leaderboard-tabs">
+            <button onclick="loadLeaderboard('students')" class="tab-btn active">Top Students</button>
+            <button onclick="loadLeaderboard('mentors')" class="tab-btn">Top Mentors</button>
+        </div>
+        <div id="leaderboard-list" class="leaderboard-list"></div>
+    </section>
 </body>
 
 </html>

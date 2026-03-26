@@ -80,3 +80,11 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 
 module.exports = mongoose.model('User', userSchema);
 
+
+achievements: [{
+    name: String,
+    earnedAt: { type: Date, default: Date.now },
+    icon: String,
+    description: String
+}]
+
