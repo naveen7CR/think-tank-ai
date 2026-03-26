@@ -72,52 +72,41 @@ router.get('/messages/:userId', protect, async (req, res) => {
 router.post('/send', protect, async (req, res) => {
     try {
         const { receiverId, content } = req.body;
-        
-        // Validate receiverId is a valid MongoDB ObjectId
-        const isValidId = /^[0-9a-fA-F]{24}$/.test(receiverId);
-        
-        if (!isValidId) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid receiver ID. Please select a real mentor from the list.' 
+
+        // Check if receiverId is valid
+        if (!receiverId || receiverId.length !== 24) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid mentor ID. Please refresh the page and try again.'
             });
         }
-        
+
         // Check if receiver exists
         const receiver = await User.findById(receiverId);
         if (!receiver) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Receiver not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'Mentor not found. Please refresh the page.'
             });
         }
-        
+
+        // Create message
         const message = await Message.create({
             sender: req.user._id,
             receiver: receiverId,
-            content
+            content: content
         });
-        
+
         const populatedMessage = await Message.findById(message._id)
             .populate('sender', 'name avatar');
-        
-        // Send email notification (optional)
-        try {
-            if (receiver.email) {
-                const { sendNewMessageNotification } = require('../utils/emailService');
-                await sendNewMessageNotification(receiver.email, req.user.name, content);
-                console.log('📧 Email sent to:', receiver.email);
-            }
-        } catch (emailError) {
-            console.error('Email error:', emailError);
-        }
-        
+
         res.json({ success: true, data: populatedMessage });
+
     } catch (error) {
-        console.error('Send message error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Server error: ' + error.message 
+        console.error('Send error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
         });
     }
 });
