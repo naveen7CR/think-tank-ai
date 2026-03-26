@@ -1187,3 +1187,45 @@ function searchStudentMentors() {
         }
     });
 }
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function showLoading() {
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    overlay.id = 'loading-overlay';
+    overlay.innerHTML = '<div class="loading-spinner"></div>';
+    document.body.appendChild(overlay);
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.remove();
+}
+
+// Study Reminders
+function setStudyReminder() {
+    const hours = prompt("After how many hours do you want a reminder?");
+    if (hours && !isNaN(hours)) {
+        const minutes = hours * 60;
+        setTimeout(() => {
+            showToast("Time to study! 📚 Don't forget your study goals!", "info");
+            if (Notification.permission === 'granted') {
+                new Notification("Study Reminder", { body: "Time to study! 📚" });
+            }
+        }, minutes * 60 * 1000);
+        showToast(`Reminder set for ${hours} hours from now!`, "success");
+    }
+}
+
+// Add to quick actions
+// Add this button to your quick actions HTML:
+// <button onclick="setStudyReminder()" class="action-btn"><i class="fas fa-bell"></i><span>Set Reminder</span></button>

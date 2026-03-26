@@ -315,6 +315,37 @@
             </div>
         </section>
     </div>
+    <!-- Dashboard Stats Cards -->
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <i class="fas fa-graduation-cap"></i>
+            <div class="stat-info">
+                <h3 id="stat-students">0</h3>
+                <p>Total Students</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-chalkboard-user"></i>
+            <div class="stat-info">
+                <h3 id="stat-mentors">0</h3>
+                <p>Total Mentors</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-question-circle"></i>
+            <div class="stat-info">
+                <h3 id="stat-questions">0</h3>
+                <p>Questions Asked</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-star"></i>
+            <div class="stat-info">
+                <h3 id="stat-stars">0</h3>
+                <p>Total Stars</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Auth Modal with Enhanced Registration Form -->
     <div id="auth-modal" class="modal">
@@ -453,6 +484,28 @@
                 <p style="margin-top: 15px; text-align: center;">Already have an account? <a href="#"
                         onclick="switchAuthForm('login')">Sign in</a></p>
             </div>
+        </div>
+    </div>
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="actions-grid">
+            <button onclick="showSection('ai-assistant')" class="action-btn">
+                <i class="fas fa-robot"></i>
+                <span>Ask AI</span>
+            </button>
+            <button onclick="showSection('mentors')" class="action-btn">
+                <i class="fas fa-handshake"></i>
+                <span>Find Mentor</span>
+            </button>
+            <button onclick="showSection('tracker')" class="action-btn">
+                <i class="fas fa-chart-line"></i>
+                <span>Track Study</span>
+            </button>
+            <button onclick="showSection('mocktests')" class="action-btn">
+                <i class="fas fa-file-alt"></i>
+                <span>Take Test</span>
+            </button>
         </div>
     </div>
 
