@@ -716,7 +716,14 @@ async function loadKnowledgeGraph() {
 
 async function loadMockTests() {
     try {
-        const response = await fetch(`${API_URL}/mocktests`, {
+        const subject = document.getElementById('test-subject-filter')?.value || 'All';
+        const difficulty = document.getElementById('test-difficulty-filter')?.value || 'All';
+
+        let url = `${API_URL}/mocktests`;
+        if (subject !== 'All') url += `?subject=${subject}`;
+        if (difficulty !== 'All') url += `${subject !== 'All' ? '&' : '?'}difficulty=${difficulty}`;
+
+        const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -727,22 +734,91 @@ async function loadMockTests() {
         if (data.success && data.data.length > 0) {
             testsDiv.innerHTML = data.data.map(test => `
                 <div class="mocktest-card">
-                    <h4>${test.title}</h4>
-                    <p>Subject: ${test.subject} | ${test.difficulty}</p>
-                    <p>📝 ${test.totalMarks} marks | ⏱️ ${test.timeLimit} min</p>
+                    <div class="test-header">
+                        <h4>${test.title}</h4>
+                        <span class="difficulty-badge ${test.difficulty.toLowerCase()}">${test.difficulty}</span>
+                    </div>
+                    <p class="test-description">${test.description || 'Test your knowledge in ' + test.subject}</p>
+                    <div class="test-stats">
+                        <span><i class="fas fa-book"></i> ${test.subject}</span>
+                        <span><i class="fas fa-star"></i> ${test.totalMarks} marks</span>
+                        <span><i class="fas fa-clock"></i> ${test.timeLimit} min</span>
+                        <span><i class="fas fa-question-circle"></i> ${test.questions || 20} questions</span>
+                    </div>
                     <button onclick="startTest('${test._id}')" class="btn-primary">Start Test</button>
                 </div>
             `).join('');
         } else {
-            testsDiv.innerHTML = '<p>No mock tests available yet.</p>';
+            testsDiv.innerHTML = '<p>No tests available for this filter. Try another subject!</p>';
         }
     } catch (error) {
         console.error('Error loading tests:', error);
+        const testsDiv = document.getElementById('mocktests-list');
+        if (testsDiv) testsDiv.innerHTML = '<p>Error loading tests. Please try again.</p>';
     }
 }
 
+// Enhanced startTest with better UI
 async function startTest(testId) {
-    alert('Test feature coming soon!');
+    showToast('Loading test questions...', 'info');
+
+    try {
+        const response = await fetch(`${API_URL}/mocktests/${testId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const test = data.data;
+
+            // Create a modal for the test
+            const modal = document.createElement('div');
+            modal.className = 'test-modal';
+            modal.innerHTML = `
+                <div class="test-modal-content">
+                    <div class="test-modal-header">
+                        <h2>${test.title}</h2>
+                        <button onclick="this.closest('.test-modal').remove()" class="close-btn">&times;</button>
+                    </div>
+                    <div class="test-modal-body">
+                        <p class="test-description">${test.description || 'Test your knowledge'}</p>
+                        <div class="test-info">
+                            <span>📚 ${test.subject}</span>
+                            <span>⭐ ${test.difficulty}</span>
+                            <span>📝 ${test.totalMarks} marks</span>
+                            <span>⏱️ ${test.timeLimit} minutes</span>
+                        </div>
+                        <div class="test-actions">
+                            <button onclick="startMockTest('${test._id}')" class="btn-primary">Start Test</button>
+                            <button onclick="this.closest('.test-modal').remove()" class="btn-outline">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        } else {
+            showToast('Could not load test details', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading test details:', error);
+        showToast('Error loading test. Please try again.', 'error');
+    }
+}
+
+// Actual test function
+async function startMockTest(testId) {
+    showToast('Starting test...', 'info');
+
+    // Close the modal
+    const modal = document.querySelector('.test-modal');
+    if (modal) modal.remove();
+
+    // Redirect to test page or start in same page
+    alert(`🎯 Test Started!\n\nThis is a demo test. In the full version, you would see:\n- Timed questions\n- Multiple choice answers\n- Instant feedback\n- Score at the end\n\nWe're working on adding complete test functionality soon!`);
+
+    // You can also redirect to a test page:
+    // window.location.href = `/test.html?id=${testId}`;
 }
 
 // ============ VIDEO CALLS ============
