@@ -1094,3 +1094,96 @@ async function processPayment(amount, sessionId) {
         return false;
     }
 }
+function showRoleSpecificDashboard() {
+    const studentSection = document.getElementById('student-section');
+    const mentorSection = document.getElementById('mentor-section');
+
+    if (currentUser.role === 'student') {
+        if (studentSection) studentSection.style.display = 'block';
+        if (mentorSection) mentorSection.style.display = 'none';
+        loadStudentMentors(); // Load mentors for students
+    } else if (currentUser.role === 'mentor') {
+        if (studentSection) studentSection.style.display = 'none';
+        if (mentorSection) mentorSection.style.display = 'block';
+        loadStudentQuestions(); // Load student questions for mentors
+    }
+}
+
+async function loadStudentMentors() {
+    try {
+        const response = await fetch(`${API_URL}/mentorship/mentors`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+        const mentorsList = document.getElementById('student-mentors-list');
+
+        if (data.success && data.data.length > 0) {
+            mentorsList.innerHTML = data.data.map(mentor => `
+                <div class="mentor-card">
+                    <img src="${mentor.avatar || 'https://via.placeholder.com/70'}" class="mentor-avatar">
+                    <div class="mentor-info">
+                        <h4>${mentor.name}</h4>
+                        <p class="mentor-skills">${mentor.skillTags?.join(' • ') || 'General'}</p>
+                        <p class="mentor-bio">${mentor.bio || 'Expert mentor'}</p>
+                        <button onclick="chatWithMentor('${mentor._id}', '${mentor.name}')" class="btn-chat">
+                            <i class="fas fa-comment"></i> Chat
+                        </button>
+                        <button onclick="requestSession('${mentor._id}', 'chat')" class="btn-session">
+                            <i class="fas fa-calendar-alt"></i> Book Session
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            mentorsList.innerHTML = '<p>No mentors available yet. Check back later!</p>';
+        }
+    } catch (error) {
+        console.error('Error loading mentors:', error);
+    }
+}
+
+async function loadStudentQuestions() {
+    try {
+        const response = await fetch(`${API_URL}/questions`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+        const questionsList = document.getElementById('student-questions-list');
+
+        if (data.success && data.data.length > 0) {
+            questionsList.innerHTML = data.data.map(question => `
+                <div class="question-card">
+                    <h4>${question.title}</h4>
+                    <p>${question.description.substring(0, 100)}...</p>
+                    <div class="question-meta">
+                        <span>Subject: ${question.subject}</span>
+                        <span>Difficulty: ${question.difficulty}</span>
+                        <span>⭐ ${question.starsReward} stars</span>
+                    </div>
+                    <button onclick="answerQuestion('${question._id}')" class="btn-primary">Answer Question</button>
+                </div>
+            `).join('');
+        } else {
+            questionsList.innerHTML = '<p>No questions yet. Students will post questions here!</p>';
+        }
+    } catch (error) {
+        console.error('Error loading questions:', error);
+    }
+}
+function searchStudentMentors() {
+    const searchTerm = document.getElementById('student-search').value.toLowerCase();
+    const mentorCards = document.querySelectorAll('#student-mentors-list .mentor-card');
+
+    mentorCards.forEach(card => {
+        const name = card.querySelector('h4')?.innerText.toLowerCase() || '';
+        const skills = card.querySelector('.mentor-skills')?.innerText.toLowerCase() || '';
+
+        if (name.includes(searchTerm) || skills.includes(searchTerm)) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}

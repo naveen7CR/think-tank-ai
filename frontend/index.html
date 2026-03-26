@@ -14,6 +14,11 @@
 <body>
     <!-- Navigation -->
     <nav class="navbar">
+        <div class="dark-mode-toggle">
+            <button onclick="toggleDarkMode()" class="dark-mode-btn">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
         <div class="nav-container">
             <div class="logo">
                 <i class="fas fa-brain"></i>
@@ -111,6 +116,27 @@
 
     <!-- Dashboard (Hidden until login) -->
     <div id="dashboard" class="dashboard" style="display: none;">
+        <!-- Student Only Section -->
+        <div id="student-section" style="display: none;">
+            <div class="section-header">
+                <h2><i class="fas fa-graduation-cap"></i> Find Mentors</h2>
+                <p>Search for mentors who can help you learn</p>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="student-search" placeholder="🔍 Search by name, subject, or skill..."
+                    onkeyup="searchStudentMentors()">
+            </div>
+            <div id="student-mentors-list" class="mentors-grid"></div>
+        </div>
+
+        <!-- Mentor Only Section -->
+        <div id="mentor-section" style="display: none;">
+            <div class="section-header">
+                <h2><i class="fas fa-chalkboard-user"></i> Students Who Need Help</h2>
+                <p>Browse student questions and help them learn</p>
+            </div>
+            <div id="student-questions-list" class="questions-grid"></div>
+        </div>
         <!-- AI Assistant Section -->
         <section id="ai-assistant-section" class="section-content">
             <div class="section-header">

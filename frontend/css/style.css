@@ -1661,3 +1661,36 @@ body {
 .chat-input button:hover {
     transform: scale(1.05);
 }
+
+/* Dark Mode */
+.dark-mode {
+    background: #1a1a2e;
+    color: #e2e8f0;
+}
+
+.dark-mode .navbar,
+.dark-mode .feature-card,
+.dark-mode .mentor-card,
+.dark-mode .stat-card,
+.dark-mode .mocktest-card,
+.dark-mode .graph-node {
+    background: #16213e;
+    color: #e2e8f0;
+}
+
+.dark-mode .btn-outline {
+    border-color: #e2e8f0;
+    color: #e2e8f0;
+}
+
+.dark-mode-toggle {
+    margin-left: 15px;
+}
+
+.dark-mode-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #667eea;
+}
