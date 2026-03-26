@@ -14,6 +14,10 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+// Root route
+app.get('/', (req, res) => {
+    res.json({ message: 'Think Tank AI API is running!' });
+});
 
 // Simple test route
 app.get('/api/simple-test', (req, res) => {
