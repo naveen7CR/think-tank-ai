@@ -30,6 +30,7 @@
                 <a href="#" onclick="showSection('tracker')">Tracker</a>
                 <a href="#" onclick="showSection('knowledge')">Learning Path</a>
                 <a href="#" onclick="showSection('mocktests')">Mock Tests</a>
+                <a href="#" onclick="showSection('leaderboard')">Leaderboard</a>
             </div>
             <div class="nav-auth" id="nav-auth">
                 <button class="btn-outline" onclick="showAuthModal('login')">Sign In</button>
@@ -248,6 +249,21 @@
             </div>
             <div id="recommendations" class="recommendations"></div>
         </section>
+        <!-- Leaderboard Section -->
+        <section id="leaderboard-section" class="section-content">
+            <div class="section-header">
+                <h2><i class="fas fa-chart-line"></i> Leaderboard</h2>
+                <p>Top students and mentors</p>
+            </div>
+            <div class="leaderboard-tabs">
+                <button onclick="loadLeaderboard('students')" class="tab-btn active">Top Students</button>
+                <button onclick="loadLeaderboard('mentors')" class="tab-btn">Top Mentors</button>
+            </div>
+            <div id="leaderboard-list" class="leaderboard-list">
+                <p>Loading...</p>
+            </div>
+        </section>
+
 
         <!-- Mock Tests Section -->
         <section id="mocktests-section" class="section-content">
@@ -574,18 +590,7 @@
         </div>
     </div>
 
-    <!-- Leaderboard Section -->
-    <section id="leaderboard-section" class="section-content">
-        <div class="section-header">
-            <h2><i class="fas fa-chart-line"></i> Leaderboard</h2>
-            <p>Top students and mentors</p>
-        </div>
-        <div class="leaderboard-tabs">
-            <button onclick="loadLeaderboard('students')" class="tab-btn active">Top Students</button>
-            <button onclick="loadLeaderboard('mentors')" class="tab-btn">Top Mentors</button>
-        </div>
-        <div id="leaderboard-list" class="leaderboard-list"></div>
-    </section>
+
 </body>
 
 </html>
