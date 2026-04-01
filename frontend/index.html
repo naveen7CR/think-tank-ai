@@ -267,6 +267,25 @@
 
         <!-- Mock Tests Section -->
         <section id="mocktests-section" class="section-content">
+            <div class="test-filters">
+                <select id="test-subject-filter" onchange="loadMockTests()">
+                    <option value="All">All Subjects</option>
+                    <option value="Mathematics">Mathematics</option>
+                    <option value="Physics">Physics</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Biology">Biology</option>
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Business">Business</option>
+                    <option value="Arts">Arts</option>
+                </select>
+                <select id="test-difficulty-filter" onchange="loadMockTests()">
+                    <option value="All">All Difficulties</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                </select>
+            </div>
             <div class="section-header">
                 <h2><i class="fas fa-file-alt"></i> Practice Mock Tests</h2>
                 <p>Test your knowledge and get AI-powered analysis</p>
