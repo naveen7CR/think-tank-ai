@@ -2155,3 +2155,135 @@ body {
     gap: 15px;
     margin-top: 20px;
 }
+
+/* Study Rooms */
+.rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.room-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s;
+}
+
+.room-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.room-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.room-header h3 {
+    margin: 0;
+    color: #1e293b;
+}
+
+.room-member-count {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.room-subject {
+    color: #667eea;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.room-description {
+    color: #475569;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+
+.room-creator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.avatar-sm {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.rooms-tabs {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* Room Chat */
+.room-chat-content {
+    max-width: 600px;
+    height: 500px;
+    display: flex;
+    flex-direction: column;
+}
+
+.room-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 12px;
+    margin: 15px 0;
+}
+
+.room-message {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.room-message strong {
+    color: #667eea;
+    font-size: 0.85rem;
+}
+
+.room-message p {
+    margin: 5px 0 0;
+    color: #1e293b;
+}
+
+.room-message small {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.room-chat-input {
+    display: flex;
+    gap: 10px;
+    padding-top: 10px;
+}
+
+.room-chat-input input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 25px;
+    outline: none;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}

@@ -1414,3 +1414,207 @@ async function loadLeaderboard(type = 'students') {
         console.error('Error loading leaderboard:', error);
     }
 }
+
+let currentRoomId = null;
+let roomSocket = null;
+
+async function loadRooms(type = 'all') {
+    try {
+        const url = type === 'my' ? `${API_URL}/rooms/my-rooms` : `${API_URL}/rooms`;
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+        const roomsList = document.getElementById('rooms-list');
+
+        if (data.success && data.data.length > 0) {
+            roomsList.innerHTML = data.data.map(room => `
+                <div class="room-card">
+                    <div class="room-header">
+                        <h3>${room.name}</h3>
+                        <span class="room-member-count"><i class="fas fa-users"></i> ${room.members.length}/${room.maxMembers}</span>
+                    </div>
+                    <p class="room-subject"><i class="fas fa-book"></i> ${room.subject || 'General'}</p>
+                    <p class="room-description">${room.description || 'Join to study together!'}</p>
+                    <div class="room-creator">
+                        <img src="${room.creator?.avatar || 'https://via.placeholder.com/30'}" class="avatar-sm">
+                        <span>Created by ${room.creator?.name}</span>
+                    </div>
+                    <button onclick="joinRoom('${room._id}')" class="btn-primary btn-sm">Join Room</button>
+                </div>
+            `).join('');
+        } else {
+            roomsList.innerHTML = '<p>No rooms yet. Create one to start studying!</p>';
+        }
+    } catch (error) {
+        console.error('Error loading rooms:', error);
+    }
+}
+
+function showCreateRoomModal() {
+    document.getElementById('create-room-modal').style.display = 'block';
+}
+
+function closeCreateRoomModal() {
+    document.getElementById('create-room-modal').style.display = 'none';
+}
+
+async function createRoom() {
+    const name = document.getElementById('room-name').value;
+    const subject = document.getElementById('room-subject').value;
+    const description = document.getElementById('room-description').value;
+    const maxMembers = document.getElementById('room-max-members').value;
+
+    if (!name) {
+        showToast('Please enter a room name', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/rooms/create`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ name, subject, description, maxMembers })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            closeCreateRoomModal();
+            showToast(`Room "${name}" created!`, 'success');
+            loadRooms('my');
+            document.getElementById('room-name').value = '';
+            document.getElementById('room-subject').value = '';
+            document.getElementById('room-description').value = '';
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error creating room:', error);
+        showToast('Failed to create room', 'error');
+    }
+}
+
+async function joinRoom(roomId) {
+    try {
+        const response = await fetch(`${API_URL}/rooms/join/${roomId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Joined room!', 'success');
+            openRoomChat(roomId);
+            loadRooms('my');
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error joining room:', error);
+        showToast('Failed to join room', 'error');
+    }
+}
+
+async function openRoomChat(roomId) {
+    currentRoomId = roomId;
+
+    // Load room details
+    const response = await fetch(`${API_URL}/rooms/${roomId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+
+    if (data.success) {
+        document.getElementById('room-chat-header').innerHTML = `
+            <h3>${data.data.name}</h3>
+            <p>${data.data.members.length} members online</p>
+        `;
+
+        // Load messages
+        const messagesResponse = await fetch(`${API_URL}/rooms/${roomId}/messages`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const messagesData = await messagesResponse.json();
+
+        const messagesDiv = document.getElementById('room-chat-messages');
+        if (messagesData.success && messagesData.data.length > 0) {
+            messagesDiv.innerHTML = messagesData.data.map(msg => `
+                <div class="room-message">
+                    <strong>${msg.sender?.name}:</strong>
+                    <p>${msg.content}</p>
+                    <small>${new Date(msg.createdAt).toLocaleTimeString()}</small>
+                </div>
+            `).join('');
+        } else {
+            messagesDiv.innerHTML = '<p>No messages yet. Be the first to say something!</p>';
+        }
+
+        document.getElementById('room-chat-modal').style.display = 'block';
+
+        // Setup socket for room
+        if (roomSocket) roomSocket.disconnect();
+        roomSocket = io('https://think-tank-ai-backend.onrender.com');
+        roomSocket.emit('join-room', roomId);
+
+        roomSocket.on('room-message', (message) => {
+            const messagesDiv = document.getElementById('room-chat-messages');
+            messagesDiv.innerHTML += `
+                <div class="room-message">
+                    <strong>${message.senderName}:</strong>
+                    <p>${message.content}</p>
+                    <small>Just now</small>
+                </div>
+            `;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+    }
+}
+
+function closeRoomChat() {
+    document.getElementById('room-chat-modal').style.display = 'none';
+    if (roomSocket) roomSocket.disconnect();
+    currentRoomId = null;
+}
+
+async function sendRoomMessage() {
+    const input = document.getElementById('room-chat-input');
+    const content = input.value.trim();
+
+    if (!content || !currentRoomId) return;
+
+    try {
+        const response = await fetch(`${API_URL}/rooms/${currentRoomId}/message`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ content })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            input.value = '';
+
+            // Emit via socket
+            roomSocket.emit('room-message', {
+                roomId: currentRoomId,
+                content,
+                senderId: currentUser._id,
+                senderName: currentUser.name
+            });
+        }
+    } catch (error) {
+        console.error('Error sending message:', error);
+    }
+}

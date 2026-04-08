@@ -31,6 +31,7 @@
                 <a href="#" onclick="showSection('knowledge')">Learning Path</a>
                 <a href="#" onclick="showSection('mocktests')">Mock Tests</a>
                 <a href="#" onclick="showSection('leaderboard')">Leaderboard</a>
+                <a href="#" onclick="showSection('rooms')">Study Rooms</a>
             </div>
             <div class="nav-auth" id="nav-auth">
                 <button class="btn-outline" onclick="showAuthModal('login')">Sign In</button>
@@ -117,6 +118,26 @@
 
     <!-- Dashboard (Hidden until login) -->
     <div id="dashboard" class="dashboard" style="display: none;">
+        <!-- Study Rooms Section -->
+        <section id="rooms-section" class="section-content">
+            <div class="section-header">
+                <h2><i class="fas fa-users"></i> Study Rooms</h2>
+                <p>Create or join study groups to learn together</p>
+            </div>
+
+            <button onclick="showCreateRoomModal()" class="btn-primary">
+                <i class="fas fa-plus"></i> Create Room
+            </button>
+
+            <div class="rooms-tabs">
+                <button onclick="loadRooms('all')" class="tab-btn active">All Rooms</button>
+                <button onclick="loadRooms('my')" class="tab-btn">My Rooms</button>
+            </div>
+
+            <div id="rooms-list" class="rooms-grid">
+                <p>Loading rooms...</p>
+            </div>
+        </section>
         <!-- Student Only Section -->
         <div id="student-section" style="display: none;">
             <div class="section-header">
@@ -605,6 +626,43 @@
                         <i class="fas fa-phone-slash"></i>
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+    <!-- Create Room Modal -->
+    <div id="create-room-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateRoomModal()">&times;</span>
+            <h2>Create Study Room</h2>
+            <div class="form-group">
+                <label>Room Name</label>
+                <input type="text" id="room-name" placeholder="e.g., Calculus Study Group">
+            </div>
+            <div class="form-group">
+                <label>Subject</label>
+                <input type="text" id="room-subject" placeholder="e.g., Mathematics">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="room-description" rows="3" placeholder="What will you study?"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Max Members (optional)</label>
+                <input type="number" id="room-max-members" placeholder="10" value="10">
+            </div>
+            <button onclick="createRoom()" class="btn-primary">Create Room</button>
+        </div>
+    </div>
+
+    <!-- Room Chat Modal -->
+    <div id="room-chat-modal" class="modal" style="display: none;">
+        <div class="modal-content room-chat-content">
+            <span class="close" onclick="closeRoomChat()">&times;</span>
+            <div id="room-chat-header"></div>
+            <div id="room-chat-messages" class="room-chat-messages"></div>
+            <div class="room-chat-input">
+                <input type="text" id="room-chat-input" placeholder="Type a message...">
+                <button onclick="sendRoomMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
     </div>
