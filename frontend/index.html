@@ -378,6 +378,26 @@
                 <button onclick="updateProfile()" class="btn-primary">Save Changes</button>
             </div>
         </section>
+        <!-- Study Rooms Section -->
+        <section id="rooms-section" class="section-content">
+            <div class="section-header">
+                <h2><i class="fas fa-users"></i> Study Rooms</h2>
+                <p>Create or join study groups to learn together</p>
+            </div>
+
+            <button onclick="showCreateRoomModal()" class="btn-primary">
+                <i class="fas fa-plus"></i> Create Room
+            </button>
+
+            <div class="rooms-tabs">
+                <button onclick="loadRooms('all')" class="tab-btn active">All Rooms</button>
+                <button onclick="loadRooms('my')" class="tab-btn">My Rooms</button>
+            </div>
+
+            <div id="rooms-list" class="rooms-grid">
+                <p>Loading rooms...</p>
+            </div>
+        </section>
     </div>
     <!-- Dashboard Stats Cards -->
     <div class="dashboard-stats">
