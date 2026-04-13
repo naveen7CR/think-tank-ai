@@ -1,3 +1,4 @@
+const sampleQuestions = require('../data/sampleQuestions');
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
@@ -109,6 +110,18 @@ router.get('/:id', protect, async (req, res) => {
         res.json({ success: true, data: test });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+// Get test with questions
+router.get('/:id/questions', protect, async (req, res) => {
+    try {
+        const testQuestions = sampleQuestions[req.params.id];
+        if (!testQuestions) {
+            return res.status(404).json({ success: false, message: 'Test not found' });
+        }
+        res.json({ success: true, data: testQuestions });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
